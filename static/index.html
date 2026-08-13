@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>北辰本地中枢｜Windows 本地服务与批处理启动监测</title>
+<meta name="description" content="Windows 11 本地服务及批处理任务的快速启动、运行监测工具">
+<link rel="icon" href="/assets/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="/assets/favicon.ico" sizes="any">
+<link rel="preload" href="/fonts/GeistMono-Variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/themes/ops.css" id="themeCss">
+<link rel="stylesheet" href="/base.css">
+</head>
+<body>
+
+<!-- 断连横幅 -->
+<div class="banner" id="banner" role="status" aria-live="polite" aria-atomic="true" aria-hidden="true">控制台连接断开，正在自动重连…</div>
+<div class="sr-only" id="reorderInstructions">
+  应用卡片可排序。聚焦卡片后按空格开始，使用方向键移动，空格确认，Escape 取消。
+</div>
+<div class="sr-only" id="reorderStatus" role="status" aria-live="assertive" aria-atomic="true"></div>
+
+<div class="shell">
+
+  <!-- ===== 左侧导航轨 ===== -->
+  <aside class="rail" aria-label="主导航">
+    <nav class="rail-nav">
+      <button class="rail-btn active" id="rail-launchpad" type="button" data-view="launchpad" aria-label="启动台" aria-current="page">
+        <span class="rail-ic" id="railIconLaunch" aria-hidden="true"></span>
+        <span class="rail-label">启动台</span>
+      </button>
+      <button class="rail-btn" id="rail-services" type="button" data-view="services" aria-label="服务监控">
+        <span class="rail-ic" id="railIconSvc" aria-hidden="true"></span>
+        <span class="rail-label">服务监控</span>
+      </button>
+      <button class="rail-btn" id="rail-logs" type="button" data-action="logs" aria-label="日志中心">
+        <span class="rail-ic" id="railIconLogs" aria-hidden="true"></span>
+        <span class="rail-label">日志中心</span>
+      </button>
+      <button class="rail-btn" id="rail-settings" type="button" data-action="settings" aria-label="设置中心">
+        <span class="rail-ic" id="railIconSettings" aria-hidden="true"></span>
+        <span class="rail-label">设置中心</span>
+      </button>
+    </nav>
+    <div class="rail-foot">
+      <div class="rail-conn">
+        <span class="status-dot running" id="railConnDot" aria-hidden="true"></span>
+        <span id="railConnText">已连接</span>
+      </div>
+      <div class="rail-host mono">本机 localhost</div>
+      <div class="rail-ver mono" id="railVer">v—</div>
+    </div>
+  </aside>
+
+  <div class="shell-col">
+
+    <!-- ===== 顶部导航 ===== -->
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="side-brand">
+          <span class="brand-icon" aria-hidden="true"><img src="/assets/brand-mark.png" alt=""></span>
+          <div class="brand-text">
+            <h1>北辰本地中枢</h1>
+            <p>本地服务监控 · 快速启动</p>
+          </div>
+        </div>
+
+        <nav class="side-nav" id="sideNav" role="tablist" aria-label="主视图">
+          <button class="nav-btn active" id="tab-launchpad" type="button" role="tab" aria-selected="true" aria-controls="view-launchpad" data-view="launchpad">
+            <span class="nav-ic" id="navIconLaunch" aria-hidden="true"></span>
+            <span class="nav-label">启动台</span>
+            <span class="nav-count" id="navCountLaunch"></span>
+          </button>
+          <button class="nav-btn" id="tab-services" type="button" role="tab" aria-selected="false" aria-controls="view-services" tabindex="-1" data-view="services">
+            <span class="nav-ic" id="navIconSvc" aria-hidden="true"></span>
+            <span class="nav-label">服务监控</span>
+            <span class="nav-count" id="navCountSvc"></span>
+          </button>
+        </nav>
+
+        <div class="topbar-right">
+          <div class="side-stats mono" id="sideStats">—</div>
+          <div class="side-controls">
+            <button class="northstar-control" id="restartConsoleBtn" type="button" title="重启北辰本地中枢" aria-label="重启北辰本地中枢">
+              <span id="restartConsoleIcon" aria-hidden="true"></span>
+              <span class="northstar-action-label" id="restartConsoleLabel">重启</span>
+              <span class="northstar-port" id="northstarPortLabel">:----</span>
+            </button>
+            <button class="northstar-control danger" id="stopConsoleBtn" type="button" title="停止北辰本地中枢" aria-label="停止北辰本地中枢">
+              <span id="stopConsoleIcon" aria-hidden="true"></span>
+              <span class="northstar-action-label" id="stopConsoleLabel">停止</span>
+            </button>
+            <button class="icon-btn" id="themeBtn" type="button" title="切换主题" aria-label="切换主题"></button>
+            <a class="icon-btn" id="githubLink" href="https://github.com/laogou717/northstar-local-hub" target="_blank" rel="noopener noreferrer" title="查看源码 · GitHub" aria-label="查看源码（GitHub 仓库）"></a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ===== 主内容 ===== -->
+    <main class="main">
+      <div class="main-inner">
+
+        <div class="content">
+
+          <div class="view-head">
+            <div class="vh-left">
+              <div class="vh-overline" id="viewOverline">Launchpad</div>
+              <h2 id="viewTitle">启动台</h2>
+              <p class="vh-sub" id="viewSub">一键启动与管理你的本地服务和批处理任务</p>
+            </div>
+            <div class="vh-right">
+              <button class="cmdk-trigger" id="cmdkTrigger" type="button" aria-label="打开命令面板">
+                <span class="cmdk-ic" id="cmdkIcon" aria-hidden="true"></span>
+                <span class="cmdk-placeholder">搜索服务、端口、命令或输入操作…</span>
+                <kbd data-shortcut="K">⌘K</kbd>
+              </button>
+              <div class="quick-actions" id="quickActions">
+                <button class="qa-chip" type="button" data-qa="add-svc"><span class="qa-ic" data-qa-icon="plus" aria-hidden="true"></span>添加服务</button>
+                <button class="qa-chip" type="button" data-qa="add-task"><span class="qa-ic" data-qa-icon="terminal" aria-hidden="true"></span>添加任务</button>
+                <button class="qa-chip" type="button" data-qa="refresh"><span class="qa-ic" data-qa-icon="refresh-cw" aria-hidden="true"></span>刷新状态</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== 启动台视图 ===== -->
+          <section class="view active" id="view-launchpad" role="tabpanel" aria-labelledby="tab-launchpad" aria-hidden="false">
+
+            <!-- 启动台概览 -->
+            <div class="ov-row" id="lpOvRow">
+              <div class="ov">
+                <span class="ov-icon tone-blue" data-ov-icon="layout-grid" aria-hidden="true"></span>
+                <div class="ov-body">
+                  <div class="ov-label">应用总数</div>
+                  <div class="ov-main"><span class="ov-num" id="lpStatApps">0</span></div>
+                  <div class="ov-sub" id="lpStatAppsSub">运行 0 · 停止 0</div>
+                </div>
+              </div>
+              <div class="ov">
+                <span class="ov-icon tone-green" data-ov-icon="activity" aria-hidden="true"></span>
+                <div class="ov-body">
+                  <div class="ov-label">运行中</div>
+                  <div class="ov-main"><span class="ov-num" id="lpStatRunning">0</span><span class="status-dot running"></span></div>
+                  <div class="ov-sub">受控进程</div>
+                </div>
+              </div>
+              <div class="ov">
+                <span class="ov-icon tone-purple" data-ov-icon="terminal" aria-hidden="true"></span>
+                <div class="ov-body">
+                  <div class="ov-label">批处理任务</div>
+                  <div class="ov-main"><span class="ov-num" id="lpStatTasks">0</span></div>
+                  <div class="ov-sub" id="lpStatTasksSub">—</div>
+                </div>
+              </div>
+              <div class="ov">
+                <span class="ov-icon tone-amber" data-ov-icon="zap" aria-hidden="true"></span>
+                <div class="ov-body">
+                  <div class="ov-label">端口警告</div>
+                  <div class="ov-main"><span class="ov-num" id="lpStatWarn">0</span></div>
+                  <div class="ov-sub" id="lpStatWarnSub">无需处理</div>
+                </div>
+              </div>
+              <div class="ov">
+                <span class="ov-icon tone-cyan" data-ov-icon="gauge" aria-hidden="true"></span>
+                <div class="ov-body">
+                  <div class="ov-label">总 CPU</div>
+                  <div class="ov-main"><span class="ov-num ov-mono" id="lpStatCpu">0.0%</span></div>
+                  <div class="ov-sub" id="lpStatCpuSub">负载正常</div>
+                </div>
+              </div>
+              <div class="ov">
+                <span class="ov-icon tone-pink" data-ov-icon="memory-stick" aria-hidden="true"></span>
+                <div class="ov-body">
+                  <div class="ov-label">总内存</div>
+                  <div class="ov-main"><span class="ov-num ov-mono" id="lpStatMem">0.0%</span></div>
+                  <div class="ov-sub" id="lpStatMemSub">占用正常</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 长期服务 -->
+            <section class="panel">
+              <div class="sec-label"><span>Services · 服务</span><span class="sec-count" id="svcSecCount"></span><i></i><div class="filter-row" id="svcFilter" role="group" aria-label="筛选服务"></div></div>
+              <div class="app-grid" id="svcGrid">
+                <button class="app-card add-card" id="addSvcCard" type="button">
+                  <span class="add-plus" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg></span>
+                  <span class="add-text">添加服务</span>
+                </button>
+              </div>
+            </section>
+
+            <!-- 批处理任务 -->
+            <section class="panel">
+              <div class="sec-label"><span>Tasks · 批处理任务</span><span class="sec-count" id="taskSecCount"></span><i></i><div class="filter-row" id="taskFilter" role="group" aria-label="筛选批处理任务"></div></div>
+              <div class="app-grid" id="taskGrid">
+                <button class="app-card add-card" id="addTaskCard" type="button">
+                  <span class="add-plus" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg></span>
+                  <span class="add-text">添加任务</span>
+                </button>
+              </div>
+            </section>
+
+          </section>
+
+          <!-- ===== 服务监控视图 ===== -->
+          <section class="view" id="view-services" role="tabpanel" aria-labelledby="tab-services" aria-hidden="true">
+
+            <!-- 全局概览 -->
+            <div class="ov-row">
+              <div class="ov">
+                <span class="ov-icon tone-green" data-ov-icon="server" aria-hidden="true"></span>
+                <div class="ov-body">
+                  <div class="ov-label">我的服务</div>
+                  <div class="ov-main"><span class="ov-num" id="statMine">0</span><span class="status-dot running"></span></div>
+                  <div class="ov-sub" id="statMineSub">运行中</div>
+                </div>
+              </div>
+              <div class="ov">
+                <span class="ov-icon tone-blue" data-ov-icon="package" aria-hidden="true"></span>
+                <div class="ov-body">
+                  <div class="ov-label">后台应用</div>
+                  <div class="ov-main"><span class="ov-num" id="statBg">0</span></div>
+                  <div class="ov-sub">已加载</div>
+                </div>
+              </div>
+              <div class="ov">
+                <span class="ov-icon tone-cyan" data-ov-icon="gauge" aria-hidden="true"></span>
+                <div class="ov-body">
+                  <div class="ov-label">总 CPU</div>
+                  <div class="ov-main"><span class="ov-num ov-mono" id="statCpu">0.0%</span></div>
+                  <svg class="spark" id="sparkCpu" viewBox="0 0 100 26" preserveAspectRatio="none" aria-hidden="true"><polyline points="" fill="none" /></svg>
+                </div>
+              </div>
+              <div class="ov">
+                <span class="ov-icon tone-purple" data-ov-icon="memory-stick" aria-hidden="true"></span>
+                <div class="ov-body">
+                  <div class="ov-label">总内存</div>
+                  <div class="ov-main"><span class="ov-num ov-mono" id="statMem">0.0%</span></div>
+                  <svg class="spark" id="sparkMem" viewBox="0 0 100 26" preserveAspectRatio="none" aria-hidden="true"><polyline points="" fill="none" /></svg>
+                </div>
+              </div>
+              <div class="ov">
+                <span class="ov-icon tone-amber" data-ov-icon="zap" aria-hidden="true"></span>
+                <div class="ov-body">
+                  <div class="ov-label">端口警告</div>
+                  <div class="ov-main"><span class="ov-num" id="statWarn">0</span></div>
+                  <div class="ov-sub" id="statWarnSub">无需处理</div>
+                </div>
+              </div>
+              <div class="ov">
+                <span class="ov-icon tone-grey" data-ov-icon="clock" aria-hidden="true"></span>
+                <div class="ov-body">
+                  <div class="ov-label">最后更新</div>
+                  <div class="ov-main"><span class="ov-num ov-time" id="statTime">--:--:--</span></div>
+                  <div class="ov-sub">实时更新</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 本页打开期间发现的新监听端口；首次加载与重连恢复只建立静默基线 -->
+            <section class="port-discovery" id="portDiscovery" aria-labelledby="portDiscoveryTitle" hidden>
+              <div class="port-discovery-head">
+                <span class="port-discovery-icon" id="portDiscoveryIcon" aria-hidden="true"></span>
+                <div>
+                  <h3 id="portDiscoveryTitle">发现新的监听端口</h3>
+                  <p>仅显示本页打开期间新出现、尚未纳入管理的本地服务。</p>
+                </div>
+                <span class="port-discovery-count" id="portDiscoveryCount">0</span>
+              </div>
+              <div class="port-discovery-list" id="portDiscoveryList" role="list"
+                   aria-live="polite" aria-relevant="additions removals"></div>
+            </section>
+
+            <!-- 我的服务 -->
+            <section class="panel">
+              <div class="sec-label"><span>Services · 我的服务</span><span class="sec-count" id="mineSecCount"></span><i></i><div class="filter-row" id="mineFilter" role="group" aria-label="筛选我的服务"></div></div>
+              <div class="tbl" role="table" aria-label="我的服务">
+                <div class="tr th" role="row">
+                  <span class="c-dot" role="columnheader"><span class="sr-only">状态</span></span><span class="c-title" role="columnheader">服务</span><span class="c-pid" role="columnheader">PID</span><span class="c-port" role="columnheader">端口</span><span class="c-cwd" role="columnheader">目录</span><span class="c-load" role="columnheader">负载</span><span class="c-up" role="columnheader">时长</span><span class="c-status" role="columnheader">状态</span><span class="c-act" role="columnheader">操作</span>
+                </div>
+                <div class="tbl-body" id="mineList" role="rowgroup"></div>
+                <div class="empty-state" id="mineEmpty" role="row" hidden>
+                  <div class="empty-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /></svg></div>
+                  <p role="cell" aria-colspan="9">暂无监听中的服务</p>
+                </div>
+              </div>
+            </section>
+
+            <!-- 应用后台（默认折叠） -->
+            <section class="panel">
+              <button class="sec-label collapsible" id="bgHeader" type="button" aria-expanded="false" aria-controls="bgBody">
+                <span class="chev" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg></span>
+                <span>Background · 应用后台</span>
+                <span class="sec-count" id="bgCount">0</span>
+                <i></i>
+              </button>
+              <div id="bgBody" hidden>
+                <div class="tbl" role="table" aria-label="应用后台">
+                  <div class="tr th" role="row">
+                    <span class="c-dot" role="columnheader"><span class="sr-only">状态</span></span><span class="c-title" role="columnheader">服务</span><span class="c-pid" role="columnheader">PID</span><span class="c-port" role="columnheader">端口</span><span class="c-cwd" role="columnheader">目录</span><span class="c-load" role="columnheader">负载</span><span class="c-up" role="columnheader">时长</span><span class="c-status" role="columnheader">状态</span><span class="c-act" role="columnheader">操作</span>
+                  </div>
+                  <div class="tbl-body" id="bgList" role="rowgroup"></div>
+                  <div class="empty-state" id="bgEmpty" role="row" hidden>
+                    <div class="empty-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" /></svg></div>
+                    <p role="cell" aria-colspan="9">暂无后台应用进程</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- 已隐藏（默认折叠，无隐藏时整区不显示） -->
+            <section class="panel" id="hiddenPanel" hidden>
+              <button class="sec-label collapsible" id="hiddenHeader" type="button" aria-expanded="false" aria-controls="hiddenBody">
+                <span class="chev" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg></span>
+                <span class="sec-count" id="hiddenCount">已隐藏 0 个</span>
+                <i></i>
+              </button>
+              <div id="hiddenBody" hidden>
+                <div class="tbl" role="table" aria-label="已隐藏服务">
+                  <div class="tr th" role="row">
+                    <span class="c-dot" role="columnheader"><span class="sr-only">状态</span></span><span class="c-title" role="columnheader">服务</span><span class="c-pid" role="columnheader">PID</span><span class="c-port" role="columnheader">端口</span><span class="c-cwd" role="columnheader">目录</span><span class="c-load" role="columnheader">负载</span><span class="c-up" role="columnheader">时长</span><span class="c-status" role="columnheader">状态</span><span class="c-act" role="columnheader">操作</span>
+                  </div>
+                  <div class="tbl-body" id="hiddenList" role="rowgroup"></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- 关注的进程 -->
+            <section class="panel">
+              <div class="sec-label"><span>Watched · 关注的进程</span><i></i></div>
+              <div class="watch-controls">
+                <div class="chips" id="watchChips"></div>
+                <input id="watchInput" aria-label="添加关注进程关键字" placeholder="输入关键字，回车添加关注（如 ffmpeg）" autocomplete="off">
+              </div>
+              <div class="tbl tbl-watch" role="table" aria-label="关注的进程">
+                <div class="tr th" role="row">
+                  <span class="c-title" role="columnheader">进程</span><span class="c-pid" role="columnheader">PID</span><span class="c-load" role="columnheader">负载</span><span class="c-up" role="columnheader">时长</span><span class="c-act" role="columnheader">操作</span>
+                </div>
+                <div class="tbl-body" id="watchList" role="rowgroup"></div>
+                <div class="empty-state" id="watchEmpty" role="row" hidden>
+                  <div class="empty-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg></div>
+                  <p id="watchEmptyText" role="cell" aria-colspan="5">添加关键字后，匹配的进程会显示在这里</p>
+                </div>
+              </div>
+            </section>
+
+          </section>
+        </div>
+
+        <!-- ===== 右侧信息栏 ===== -->
+        <aside class="side-widgets" id="sideWidgets" aria-label="实时信息栏">
+
+          <!-- 启动台侧栏 -->
+          <div class="side-stack" id="sideLaunch">
+            <section class="widget" aria-labelledby="feedTitleL">
+              <div class="widget-head">
+                <h3 id="feedTitleL">实时动态</h3>
+                <button class="widget-link" id="feedClearL" type="button">清空</button>
+              </div>
+              <div class="feed-list" id="feedListL" role="log" aria-live="off"></div>
+            </section>
+            <section class="widget" aria-labelledby="topPortsTitleL">
+              <div class="widget-head"><h3 id="topPortsTitleL">端口占用 TOP 5</h3></div>
+              <div class="top5-list" id="topPortsL"></div>
+            </section>
+            <section class="widget" aria-labelledby="quickTitle">
+              <div class="widget-head"><h3 id="quickTitle">快捷操作</h3></div>
+              <div class="quick-list">
+                <button class="quick-item" type="button" data-qa="logs"><span class="qa-ic" data-qa-icon="file-text" aria-hidden="true"></span>打开日志中心<kbd data-shortcut="J">⌘J</kbd></button>
+                <button class="quick-item" type="button" data-qa="batch-stop"><span class="qa-ic" data-qa-icon="power" aria-hidden="true"></span>批量停止服务</button>
+                <button class="quick-item" type="button" data-qa="refresh"><span class="qa-ic" data-qa-icon="refresh-cw" aria-hidden="true"></span>刷新所有状态</button>
+              </div>
+            </section>
+            <section class="widget tips" id="tipsWidget" aria-labelledby="tipsTitle">
+              <div class="widget-head"><h3 id="tipsTitle">小贴士</h3><span class="tips-ic" id="tipsIcon" aria-hidden="true"></span></div>
+              <p class="tips-text" id="tipsText"></p>
+              <button class="btn tips-action" id="tipsAction" type="button" hidden>去处理</button>
+            </section>
+          </div>
+
+          <!-- 服务监控侧栏 -->
+          <div class="side-stack" id="sideSvc" hidden>
+            <section class="widget" aria-labelledby="feedTitleS">
+              <div class="widget-head">
+                <h3 id="feedTitleS">实时告警</h3>
+                <button class="widget-link" id="feedClearS" type="button">清空</button>
+              </div>
+              <div class="feed-list" id="feedListS" role="log" aria-live="off"></div>
+            </section>
+            <section class="widget" aria-labelledby="topPortsTitleS">
+              <div class="widget-head"><h3 id="topPortsTitleS">端口使用 TOP 5</h3></div>
+              <div class="top5-list" id="topPortsS"></div>
+            </section>
+            <section class="widget" aria-labelledby="topResTitle">
+              <div class="widget-head">
+                <h3 id="topResTitle">资源占用 TOP 5</h3>
+                <div class="mini-tabs" id="resTabs" role="group" aria-label="资源指标">
+                  <button class="mini-tab active" type="button" data-metric="cpu">CPU</button>
+                  <button class="mini-tab" type="button" data-metric="mem">内存</button>
+                </div>
+              </div>
+              <div class="top5-list" id="topResS"></div>
+            </section>
+          </div>
+
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ===== 命令面板 ===== -->
+<div class="modal-mask palette-mask" id="paletteMask" aria-hidden="true" inert>
+  <div class="palette" role="dialog" aria-modal="true" aria-label="命令面板">
+    <div class="palette-input-row">
+      <span class="palette-ic" id="paletteIcon" aria-hidden="true"></span>
+      <input id="paletteInput" role="combobox" aria-autocomplete="list" aria-controls="paletteList"
+        aria-haspopup="listbox" aria-expanded="false" aria-label="搜索命令"
+        placeholder="搜索应用或操作…" autocomplete="off" spellcheck="false">
+      <kbd>esc</kbd>
+    </div>
+    <div class="palette-list" id="paletteList" role="listbox" aria-label="可执行命令"></div>
+    <div class="palette-foot mono">
+      <span>↑↓ 选择</span><span>↵ 执行</span><span>esc 关闭</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 添加 / 编辑应用模态 ===== -->
+<div class="modal-mask" id="appModalMask" aria-hidden="true" inert>
+  <div class="modal" id="appModal" role="dialog" aria-modal="true" aria-labelledby="appModalTitle">
+    <h3 class="modal-title" id="appModalTitle">添加应用</h3>
+    <div class="kind-row" id="kindRow" role="group" aria-label="应用类型">
+      <button class="kind-btn active" type="button" data-kind="service">长期服务</button>
+      <button class="kind-btn" type="button" data-kind="task">批处理任务</button>
+    </div>
+    <div class="field">
+      <label for="fName">名称 <span class="req">*</span></label>
+      <input id="fName" placeholder="如：我的博客" autocomplete="off" required aria-required="true">
+    </div>
+    <div class="field">
+      <div class="field-head">
+        <label for="fCwd">工作区文件夹</label>
+        <button class="link-btn" id="btnDetectProject" type="button">重新识别</button>
+      </div>
+      <div class="input-row">
+        <input id="fCwd" placeholder="选择项目文件夹后可自动识别" autocomplete="off">
+        <button class="btn" id="btnPickCwd" type="button">选择…</button>
+      </div>
+    </div>
+    <div class="detect-panel" id="detectPanel" aria-live="polite" hidden>
+      <div class="detect-heading">
+        <span id="detectSummary">正在识别项目…</span>
+        <span class="detect-files" id="detectFiles"></span>
+      </div>
+      <div class="detect-list" id="detectList"></div>
+    </div>
+    <div class="field">
+      <div class="field-head">
+        <label for="fCmd"><span id="fCmdLabel">启动命令</span> <span class="req">*</span></label>
+        <button class="link-btn" id="btnPickScript" type="button">选择脚本…</button>
+      </div>
+      <textarea id="fCmd" rows="3" placeholder="选择项目或脚本后自动生成命令，也可以手动填写" required aria-required="true"></textarea>
+    </div>
+    <div class="field" id="portField">
+      <label for="fPort">端口</label>
+      <input id="fPort" type="number" min="1" max="65535" step="1" inputmode="numeric"
+        placeholder="可选，用于状态检测与快速打开">
+    </div>
+    <details class="appearance-details" id="appearanceDetails">
+      <summary>
+        <span class="appearance-summary-main">
+          <span class="appearance-summary-title">外观与图标</span>
+          <span class="appearance-optional">可选</span>
+        </span>
+        <span class="appearance-disclosure">
+          <span class="appearance-disclosure-closed">展开设置</span>
+          <span class="appearance-disclosure-open">收起设置</span>
+          <span class="appearance-chevron" id="appearanceChevron" aria-hidden="true"></span>
+        </span>
+      </summary>
+      <div class="field">
+        <label>图标</label>
+        <div class="icon-edit">
+          <div class="icon-preview" id="iconPreview">
+            <img id="iconPreviewImg" alt="" hidden>
+            <span id="iconPreviewGlyph" hidden></span>
+            <span id="iconPreviewTxt">?</span>
+          </div>
+          <div class="icon-edit-right">
+            <div class="glyph-grid" id="glyphGrid"></div>
+            <div class="icon-btns">
+              <button class="btn" id="btnPickIcon" type="button">上传图片</button>
+              <button class="btn" id="btnRemoveIcon" type="button" hidden>清除</button>
+            </div>
+            <p class="hint">png / jpg / webp，也可直接 Ctrl/⌘V 粘贴剪贴板图片；未选择时显示名称首字</p>
+          </div>
+        </div>
+        <input type="file" id="iconFile" accept="image/png,image/jpeg,image/webp" hidden>
+      </div>
+    </details>
+    <p class="edit-running-notice" id="editRunningNotice" hidden>
+      当前项目正在运行。可先在这里停止，编辑面板和已填写内容都会保留。
+    </p>
+    <div class="modal-actions">
+      <button class="btn" id="appCancel" type="button">取消</button>
+      <button class="btn btn-stop" id="appStopEdit" type="button" hidden>停止</button>
+      <button class="btn btn-accent" id="appSave" type="button">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 端口诊断模态 ===== -->
+<div class="modal-mask" id="portDiagMask" aria-hidden="true" inert>
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="portDiagTitle">
+    <h3 class="modal-title" id="portDiagTitle">端口诊断</h3>
+    <div class="diag-summary">
+      <span class="status-dot" id="diagDot"></span>
+      <strong id="diagSummary">端口状态</strong>
+    </div>
+    <dl class="diag-list">
+      <div><dt>端口</dt><dd class="mono" id="diagPort">--</dd></div>
+      <div id="diagPidRow"><dt>PID</dt><dd class="mono" id="diagPid">--</dd></div>
+      <div id="diagNameRow"><dt>程序</dt><dd id="diagName">--</dd></div>
+      <div id="diagAppRow"><dt>应用</dt><dd id="diagApp">--</dd></div>
+      <div id="diagUptimeRow"><dt>时长</dt><dd class="mono" id="diagUptime">--</dd></div>
+      <div id="diagCwdRow"><dt>目录</dt><dd class="mono diag-break" id="diagCwd">--</dd></div>
+      <div id="diagCmdRow"><dt>命令</dt><dd class="mono diag-break" id="diagCmd">--</dd></div>
+    </dl>
+    <p class="diag-note" id="diagNote"></p>
+    <div class="modal-actions diag-actions">
+      <button class="btn" id="diagCopy" type="button">复制信息</button>
+      <button class="btn" id="diagOpen" type="button" hidden>打开占用服务</button>
+      <button class="btn btn-accent" id="diagAttach" type="button" hidden>认领为本卡片</button>
+      <button class="btn" id="diagEdit" type="button" hidden>修改当前卡片</button>
+      <button class="btn btn-stop" id="diagKill" type="button" hidden>结束占用进程</button>
+      <button class="btn" id="diagClose" type="button">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 启动诊断模态 ===== -->
+<div class="modal-mask" id="appDiagMask" aria-hidden="true" inert>
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="appDiagTitle">
+    <h3 class="modal-title" id="appDiagTitle">启动诊断</h3>
+    <div class="appdiag-list" id="appDiagList" aria-live="polite"></div>
+    <p class="diag-note" id="appDiagSummary" role="status" aria-live="polite"></p>
+    <div class="modal-actions">
+      <button class="btn" id="appDiagLogs" type="button">查看日志</button>
+      <button class="btn btn-accent" id="appDiagClose" type="button">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 危险操作确认模态 ===== -->
+<div class="modal-mask" id="confirmMask" aria-hidden="true" inert>
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <h3 class="modal-title" id="confirmTitle">确认</h3>
+    <div class="confirm-body" id="confirmBody"></div>
+    <label class="force-row" id="forceRow" hidden>
+      <input type="checkbox" id="forceCheck"> 强制结束 (kill -9)
+    </label>
+    <div class="modal-actions">
+      <button class="btn" id="confirmCancel" type="button">取消</button>
+      <button class="btn btn-stop" id="confirmOk" type="button">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 日志中心 ===== -->
+<div class="modal-mask" id="logsMask" aria-hidden="true" inert>
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="logsMaskTitle">
+    <h3 class="modal-title" id="logsMaskTitle">日志中心</h3>
+    <div class="logs-list" id="logsList"></div>
+    <div class="modal-actions">
+      <button class="btn" id="logsMaskClose" type="button">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 设置中心 ===== -->
+<div class="modal-mask" id="settingsMask" aria-hidden="true" inert>
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="settingsMaskTitle">
+    <h3 class="modal-title" id="settingsMaskTitle">设置中心</h3>
+    <div class="set-row">
+      <div class="set-copy">
+        <div class="set-name">任务完成通知</div>
+        <div class="set-hint">批处理任务结束时发送系统通知，页面切走后也能收到</div>
+      </div>
+      <button class="switch" id="setNotify" type="button" role="switch" aria-checked="false" aria-label="任务完成通知"><i></i></button>
+    </div>
+    <div class="set-row">
+      <div class="set-copy">
+        <div class="set-name">外观</div>
+        <div class="set-hint">浅色、深色或跟随系统</div>
+      </div>
+      <div class="mini-tabs" id="setAppearance" role="group" aria-label="外观">
+        <button class="mini-tab" type="button" data-appearance="auto">自动</button>
+        <button class="mini-tab" type="button" data-appearance="light">浅色</button>
+        <button class="mini-tab" type="button" data-appearance="dark">深色</button>
+      </div>
+    </div>
+    <div class="set-info-list">
+      <div class="set-info"><span>版本</span><span class="mono" id="setVersion">—</span></div>
+      <div class="set-info"><span>端口</span><span class="mono" id="setPort">—</span></div>
+      <div class="set-info"><span>工作目录</span><span class="mono set-path" id="setCwd">—</span></div>
+      <div class="set-info"><span>数据目录</span><span class="mono set-path">%LOCALAPPDATA%\北辰本地中枢</span></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="settingsMaskClose" type="button">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 日志抽屉 ===== -->
+<div class="drawer-mask" id="drawerMask" aria-hidden="true"></div>
+<aside class="drawer" id="logDrawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle" aria-hidden="true" inert>
+  <div class="drawer-head">
+    <span id="drawerTitle">日志</span>
+    <button class="drawer-close" id="drawerClose" type="button" title="关闭" aria-label="关闭日志"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg></button>
+  </div>
+  <div class="drawer-body" id="logBody">
+    <pre id="logPre"></pre>
+  </div>
+</aside>
+
+<!-- Toast 提示 -->
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<script src="/icons.js" defer></script>
+<script src="/app.js" type="module" defer></script>
+</body>
+</html>

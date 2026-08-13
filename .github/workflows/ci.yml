@@ -1,0 +1,53 @@
+name: Windows CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-and-release:
+    name: Windows 11 checks and release audit
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      SOURCE_DATE_EPOCH: "1704067200"
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: "3.12"
+
+      - name: Show toolchain
+        shell: pwsh
+        run: |
+          python --version
+          node --version
+
+      - name: Run project checks
+        shell: pwsh
+        run: python tools/check_project.py
+
+      - name: Build and verify release
+        shell: pwsh
+        run: |
+          python tools/build_release.py --dist dist
+          python tools/build_release.py --dist dist --verify-only
+          $archive = Get-ChildItem dist\*.zip | Select-Object -First 1
+          Copy-Item $archive.FullName "$env:RUNNER_TEMP\northstar-first.zip"
+          python tools/build_release.py --dist dist
+          $second = Get-ChildItem dist\*.zip | Select-Object -First 1
+          $firstHash = (Get-FileHash "$env:RUNNER_TEMP\northstar-first.zip").Hash
+          $secondHash = (Get-FileHash $second.FullName).Hash
+          if ($firstHash -ne $secondHash) { throw "Release archive is not reproducible" }
+          python tools/build_release.py --dist dist --verify-only

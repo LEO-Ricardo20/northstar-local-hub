@@ -1,0 +1,34 @@
+# Windows / editors
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.Python
+.venv/
+venv/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Runtime state: contains local commands, paths, tokens, icons and logs
+data/
+
+# Generated scratch and release artifacts
+tmp/
+build/
+dist/
+release/
+*.zip
+*.tar.gz
+*.sha256

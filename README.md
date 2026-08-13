@@ -1,6 +1,6 @@
 # 北辰本地中枢
 
-[![Windows CI](https://github.com/OWNER/northstar-local-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/northstar-local-hub/actions/workflows/ci.yml)
+[![Windows CI](https://github.com/laogou717/northstar-local-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/laogou717/northstar-local-hub/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Windows 11](https://img.shields.io/badge/Windows-11-0078D4.svg)](WINDOWS.md)
 
@@ -35,7 +35,7 @@ Northstar Local Hub 是一个面向 Windows 11 的本地服务与批处理任务
 ## 快速开始
 
 ```powershell
-git clone https://github.com/OWNER/northstar-local-hub.git
+git clone https://github.com/laogou717/northstar-local-hub.git
 cd northstar-local-hub
 py -3 --version
 ```

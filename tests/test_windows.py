@@ -34,6 +34,17 @@ class WindowsPlatformTests(unittest.TestCase):
             self.assertEqual(server.command_for_script(paths["job.js"]),
                              "node " + subprocess.list2cmdline([paths["job.js"]]))
 
+    def test_powershell_platform_commands_never_open_a_window(self):
+        completed = subprocess.CompletedProcess([], 0, stdout="ok\n", stderr="")
+        with mock.patch.object(
+                server.shutil, "which", return_value=r"C:\Windows\powershell.exe"), \
+                mock.patch.object(
+                    server.subprocess, "run", return_value=completed) as run:
+            self.assertEqual(server.run_powershell("Write-Output 'ok'"), "ok\n")
+
+        self.assertEqual(
+            run.call_args.kwargs["creationflags"], subprocess.CREATE_NO_WINDOW)
+
     def test_listener_scan_parses_get_net_tcp_connection_rows(self):
         rows = [
             {"OwningProcess": 101, "LocalPort": 5173, "LocalAddress": "::1"},

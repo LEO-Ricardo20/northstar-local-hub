@@ -618,7 +618,7 @@ def run_powershell(script, timeout=SUBPROCESS_TIMEOUT):
             executable, "-NoLogo", "-NoProfile", "-NonInteractive",
             "-ExecutionPolicy", "Bypass", "-Command", preamble + script,
         ], capture_output=True, text=True, encoding="utf-8", errors="replace",
-            timeout=timeout)
+            timeout=timeout, creationflags=subprocess.CREATE_NO_WINDOW)
         if result.returncode:
             LOG.warning("PowerShell 平台命令失败: %s", result.stderr.strip())
             return ""

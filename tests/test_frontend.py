@@ -224,6 +224,14 @@ class FrontendAccessibilityContractTests(unittest.TestCase):
         self.assertIn("const isTask = modalKind === 'task'", overlays)
         self.assertIn("const stopVerb = isTask ? '中止任务' : '停止服务'", overlays)
 
+    def test_native_path_picker_has_interactive_timeout_and_windows_path_support(self):
+        core = (ROOT / "static/js/core.js").read_text(encoding="utf-8")
+        overlays = (ROOT / "static/js/overlays.js").read_text(encoding="utf-8")
+        self.assertIn("const PICKER_TIMEOUT_MS = 10 * 60 * 1000", core)
+        self.assertIn("PICKER_TIMEOUT_MS));", overlays)
+        self.assertIn("p.lastIndexOf('\\\\')", overlays)
+        self.assertIn("p.split(/[\\\\/]/)", overlays)
+
     def test_new_port_discovery_is_session_scoped_and_actionable(self):
         html = (ROOT / "static/index.html").read_text(encoding="utf-8")
         services = (ROOT / "static/js/services.js").read_text(encoding="utf-8")

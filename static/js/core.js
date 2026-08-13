@@ -124,6 +124,7 @@ export const GLYPHS = ['rocket', 'globe', 'terminal', 'server', 'database', 'bot
 
 /* ---------------- API ---------------- */
 const REQUEST_TIMEOUT_MS = 12000;
+const PICKER_TIMEOUT_MS = 10 * 60 * 1000;
 
 /* 变更代际：每次写操作成功后 +1。轮询响应到达时若代际已变，说明数据
    是操作生效前发出的旧快照，前端会丢弃并立即补一轮，避免旧状态回退。 */
@@ -133,9 +134,9 @@ export function currentMutationEpoch() { return mutationEpoch; }
    使在途轮询的旧快照作废，避免图标延迟一帧才出现。 */
 export function bumpMutationEpoch() { mutationEpoch += 1; }
 
-async function req(method, path, body) {
+async function req(method, path, body, timeoutMs = REQUEST_TIMEOUT_MS) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   const opt = { method, signal: controller.signal };
   if (body !== undefined) {
     opt.headers = { 'Content-Type': 'application/json' };
@@ -163,7 +164,8 @@ async function req(method, path, body) {
     clearTimeout(timer);
   }
 }
-export const post = (p, b = {}) => req('POST', p, b);
+export const post = (p, b = {}, timeoutMs) => req('POST', p, b, timeoutMs);
+export { PICKER_TIMEOUT_MS };
 export const put = (p, b) => req('PUT', p, b);
 export const del = p => req('DELETE', p);
 
@@ -518,4 +520,3 @@ export function applyUiTheme(name, persist = false) {
   });
   return queued;
 }
-

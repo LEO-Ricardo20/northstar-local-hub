@@ -100,6 +100,7 @@ HOST = "127.0.0.1"
 PORT_START = 9600
 PORT_TRIES = 10
 SUBPROCESS_TIMEOUT = 5          # PowerShell/CIM 等平台命令超时（秒）
+PICKER_TIMEOUT = 600            # 原生文件/目录选择器允许用户操作 10 分钟
 MAX_ICON_BYTES = 5 * 1024 * 1024
 MAX_JSON_BYTES = 1 * 1024 * 1024
 MAX_DETECT_FILE_BYTES = 2 * 1024 * 1024
@@ -122,6 +123,7 @@ LOG_LOCK = threading.RLock()
 MANUAL_STOP_LOCK = threading.RLock()
 MANUAL_STOP_TOKENS = set()
 WINDOWS_SNAPSHOT_LOCK = threading.Lock()
+WINDOWS_PICK_LOCK = threading.Lock()
 WINDOWS_PROCESS_CACHE = {"mono": 0.0, "data": {}}
 WINDOWS_LISTENER_CACHE = {"mono": 0.0, "data": {}}
 WINDOWS_CPU_CACHE = {"mono": 0.0, "counters": {}}
@@ -601,7 +603,7 @@ def release_instance_lock(lock_file):
 
 # ---------------------------------------------------------------- 子进程与解析
 
-def run_powershell(script, timeout=SUBPROCESS_TIMEOUT):
+def run_powershell(script, timeout=SUBPROCESS_TIMEOUT, extra_args=()):
     """运行无配置 PowerShell 并返回 stdout；仅供 Windows 平台层使用。"""
     executable = (shutil.which("powershell.exe") or
                   shutil.which("powershell") or
@@ -615,7 +617,7 @@ def run_powershell(script, timeout=SUBPROCESS_TIMEOUT):
         "[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false);")
     try:
         result = subprocess.run([
-            executable, "-NoLogo", "-NoProfile", "-NonInteractive",
+            executable, "-NoLogo", "-NoProfile", "-NonInteractive", *extra_args,
             "-ExecutionPolicy", "Bypass", "-Command", preamble + script,
         ], capture_output=True, text=True, encoding="utf-8", errors="replace",
             timeout=timeout, creationflags=subprocess.CREATE_NO_WINDOW)
@@ -1821,22 +1823,47 @@ def stop_app_for_update(cfg, app, timeout=5.0):
 
 def pick_path(what):
     """打开平台原生文件/目录选择框，返回 (path|None, canceled)。"""
-    if what == "dir":
-        script = (
-            "Add-Type -AssemblyName System.Windows.Forms;"
-            "$dialog=New-Object System.Windows.Forms.FolderBrowserDialog;"
-            "$dialog.Description='选择工作目录';"
-            "if($dialog.ShowDialog() -eq [Windows.Forms.DialogResult]::OK)"
-            "{[Console]::Write($dialog.SelectedPath)}else{exit 2}")
-    else:
-        script = (
-            "Add-Type -AssemblyName System.Windows.Forms;"
-            "$dialog=New-Object System.Windows.Forms.OpenFileDialog;"
-            "$dialog.Title='选择批处理脚本';"
-            "$dialog.Filter='脚本文件|*.py;*.ps1;*.cmd;*.bat;*.js|所有文件|*.*';"
-            "if($dialog.ShowDialog() -eq [Windows.Forms.DialogResult]::OK)"
-            "{[Console]::Write($dialog.FileName)}else{exit 2}")
-    output = run_powershell(script, timeout=180).strip()
+    if not WINDOWS_PICK_LOCK.acquire(blocking=False):
+        return None, True
+    try:
+        # -STA is required by WinForms on Windows PowerShell.  A tiny invisible
+        # owner form keeps the dialog in the foreground when the server itself
+        # is running from pythonw.exe without a console window.
+        owner = (
+            "$owner=New-Object Windows.Forms.Form;"
+            "$owner.ShowInTaskbar=$false;"
+            "$owner.FormBorderStyle='FixedToolWindow';"
+            "$owner.StartPosition='Manual';"
+            "$owner.Size=New-Object Drawing.Size(1,1);"
+            "$owner.Location=[Windows.Forms.Cursor]::Position;"
+            "$owner.Opacity=0;"
+            "$owner.TopMost=$true;"
+            "$owner.Show();")
+        if what == "dir":
+            script = (
+                "Add-Type -AssemblyName System.Windows.Forms;"
+                "Add-Type -AssemblyName System.Drawing;" + owner +
+                "$dialog=New-Object Windows.Forms.FolderBrowserDialog;"
+                "$dialog.Description='选择工作目录';"
+                "$result=$dialog.ShowDialog($owner);"
+                "if($result -eq [Windows.Forms.DialogResult]::OK)"
+                "{[Console]::Write($dialog.SelectedPath)}else{exit 2};"
+                "$owner.Close();$owner.Dispose();")
+        else:
+            script = (
+                "Add-Type -AssemblyName System.Windows.Forms;"
+                "Add-Type -AssemblyName System.Drawing;" + owner +
+                "$dialog=New-Object Windows.Forms.OpenFileDialog;"
+                "$dialog.Title='选择批处理脚本';"
+                "$dialog.Filter='脚本文件|*.py;*.ps1;*.cmd;*.bat;*.js|所有文件|*.*';"
+                "$result=$dialog.ShowDialog($owner);"
+                "if($result -eq [Windows.Forms.DialogResult]::OK)"
+                "{[Console]::Write($dialog.FileName)}else{exit 2};"
+                "$owner.Close();$owner.Dispose();")
+        output = run_powershell(
+            script, timeout=PICKER_TIMEOUT, extra_args=("-STA",)).strip()
+    finally:
+        WINDOWS_PICK_LOCK.release()
     return (output or None, not bool(output))
 
 
@@ -3084,7 +3111,7 @@ class Handler(BaseHTTPRequestHandler):
         if body:
             try:
                 self.wfile.write(body)
-            except (BrokenPipeError, ConnectionResetError):
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
                 pass
 
     def send_json(self, obj, status=200):

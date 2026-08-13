@@ -4,7 +4,7 @@
    ============================================================ */
 import { $, el, setText, setChildren, icon, escapeHtml,
   post, put, del, act, toast, openLayer, closeLayer,
-  GLYPHS, findApp, bumpMutationEpoch } from './core.js';
+  GLYPHS, findApp, bumpMutationEpoch, PICKER_TIMEOUT_MS } from './core.js';
 
 /* ---------------- DOM 引用 ---------------- */
 const appModalMask = $('#appModalMask'), appModal = $('#appModal'), appModalTitle = $('#appModalTitle');
@@ -563,14 +563,14 @@ export function initAppModal({ onAddService, onAddTask }) {
   btnPickScript.addEventListener('click', async () => {
     btnPickScript.disabled = true;
     try {
-      const r = await act(post('/api/pick', { what: 'script' }));
+      const r = await act(post('/api/pick', { what: 'script' }, PICKER_TIMEOUT_MS));
       if (!r || r.canceled || !r.path) return;  // 取消或失败均静默
       const p = r.path;
       fCmd.value = r.command || fallbackScriptCommand(p);
-      const dir = p.slice(0, p.lastIndexOf('/'));
+      const dir = p.slice(0, Math.max(p.lastIndexOf('/'), p.lastIndexOf('\\')));
       if (dir && !fCwd.value.trim()) fCwd.value = dir;
       if (!fName.value.trim()) {
-        const base = p.split('/').pop().replace(/\.(command|sh|bash|zsh|py)$/i, '');
+        const base = p.split(/[\\/]/).pop().replace(/\.(py|ps1|cmd|bat|js)$/i, '');
         if (base) fName.value = base;
       }
       fCmd.classList.remove('invalid');
@@ -589,7 +589,7 @@ export function initAppModal({ onAddService, onAddTask }) {
   btnPickCwd.addEventListener('click', async () => {
     btnPickCwd.disabled = true;
     try {
-      const r = await act(post('/api/pick', { what: 'dir' }));
+      const r = await act(post('/api/pick', { what: 'dir' }, PICKER_TIMEOUT_MS));
       if (r && !r.canceled && r.path) {
         fCwd.value = r.path;
         fCwd.classList.remove('invalid');

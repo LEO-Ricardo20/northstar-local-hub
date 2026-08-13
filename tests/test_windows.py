@@ -45,6 +45,25 @@ class WindowsPlatformTests(unittest.TestCase):
         self.assertEqual(
             run.call_args.kwargs["creationflags"], subprocess.CREATE_NO_WINDOW)
 
+    def test_path_picker_uses_sta_and_serializes_interactive_dialogs(self):
+        with mock.patch.object(server, "run_powershell", return_value="") as run:
+            path, canceled = server.pick_path("dir")
+        self.assertIsNone(path)
+        self.assertTrue(canceled)
+        self.assertEqual(run.call_args.kwargs["timeout"], server.PICKER_TIMEOUT)
+        self.assertIn("-STA", run.call_args.kwargs["extra_args"])
+        picker_script = run.call_args.args[0]
+        self.assertIn("$owner.TopMost=$true", picker_script)
+        self.assertIn("$owner.Location=[Windows.Forms.Cursor]::Position", picker_script)
+        self.assertIn("$dialog.ShowDialog($owner)", picker_script)
+
+        with server.WINDOWS_PICK_LOCK:
+            with mock.patch.object(server, "run_powershell") as blocked:
+                path, canceled = server.pick_path("dir")
+        self.assertIsNone(path)
+        self.assertTrue(canceled)
+        blocked.assert_not_called()
+
     def test_listener_scan_parses_get_net_tcp_connection_rows(self):
         rows = [
             {"OwningProcess": 101, "LocalPort": 5173, "LocalAddress": "::1"},

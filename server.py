@@ -4158,6 +4158,16 @@ def redirect_northstar_output():
         os.dup2(fd, 2)
     finally:
         os.close(fd)
+    # pythonw.exe 可能把 sys.stdout / sys.stderr 设为 None。dup2 只恢复操作系统
+    # 文件描述符，还需要为 Python 的 print/logging 重建文本流。
+    if sys.stdout is None:
+        sys.stdout = os.fdopen(
+            os.dup(1), "w", encoding="utf-8", errors="backslashreplace",
+            buffering=1)
+    if sys.stderr is None:
+        sys.stderr = os.fdopen(
+            os.dup(2), "w", encoding="utf-8", errors="backslashreplace",
+            buffering=1)
     for stream in (sys.stdout, sys.stderr):
         try:
             stream.reconfigure(line_buffering=True)
@@ -4168,7 +4178,7 @@ def redirect_northstar_output():
 def main(preferred_port=None, open_browser=True, log_to_file=False):
     """Run exactly one northstar for this project/data directory."""
     migration = prepare_runtime_storage()
-    if log_to_file:
+    if log_to_file or sys.stdout is None or sys.stderr is None:
         redirect_northstar_output()
     if migration["dataMigrated"]:
         print("已将旧版配置和图标复制到: %s" % DATA_DIR,

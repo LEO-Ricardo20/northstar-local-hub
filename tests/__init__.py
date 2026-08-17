@@ -1,1 +1,1 @@
-"""Automated test package for the northstar project."""
+"""Automated test package for the leodock project."""

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""北辰本地中枢统一项目检查。
+"""LeoDock统一项目检查。
 
 默认执行语法、结构、生成文件和测试检查。本脚本不修改项目文件；
 --release 额外检查 Git 发布边界，但不代替 RELEASE_CHECKLIST.md 的人工验收。
@@ -112,13 +112,13 @@ def check_required_files() -> str:
         ".github/PULL_REQUEST_TEMPLATE.md",
         "requirements-dev.txt",
         "Makefile",
-        "server.py",
-        "start-windows.cmd",
-        "start-windows-debug.cmd",
-        "tests/test_server.py",
+        "leodock.py",
+        "start-leodock.cmd",
+        "start-leodock-debug.cmd",
+        "tests/test_leodock.py",
         "tests/test_windows.py",
-        "docs/screenshots/ops-launchpad.jpg",
-        "docs/screenshots/ops-services.jpg",
+        "docs/screenshots/leodock-launchpad.jpg",
+        "docs/screenshots/leodock-services.jpg",
         "static/index.html",
         "static/app.js",
     )
@@ -200,7 +200,7 @@ def check_version() -> str:
 
 
 def check_python_syntax() -> str:
-    paths = [ROOT / "server.py"]
+    paths = [ROOT / "leodock.py"]
     paths.extend(sorted((ROOT / "tools").glob("*.py")))
     paths.extend(sorted((ROOT / "tests").glob("test_*.py")))
     for path in paths:
@@ -382,15 +382,15 @@ def check_javascript_bindings() -> str:
 
 def check_shell_and_plist() -> str:
     if os.name == "nt":
-        for path in (ROOT / "start-windows.cmd",
-                     ROOT / "start-windows-debug.cmd"):
+        for path in (ROOT / "start-leodock.cmd",
+                     ROOT / "start-leodock-debug.cmd"):
             text = path.read_text(encoding="utf-8")
             require(text.lower().startswith("@echo off"),
                     f"{path.relative_to(ROOT)} 缺少 @echo off")
             require("py -3" in text or "pyw.exe -3" in text,
                     f"{path.relative_to(ROOT)} 没有使用 Python Launcher")
-            require("server.py" in text,
-                    f"{path.relative_to(ROOT)} 没有启动 server.py")
+            require("leodock.py" in text,
+                    f"{path.relative_to(ROOT)} 没有启动 leodock.py")
         return "2 个 Windows 启动脚本"
     raise CheckError("仅支持 Windows 启动脚本")
 
@@ -432,7 +432,7 @@ def check_themes() -> str:
         require(isinstance(colors, list) and colors, f"{manifest.name} 缺少 colors")
         css = manifest.with_suffix(".css")
         require(css.is_file() and css.stat().st_size > 0, f"缺少主题 CSS: {css.name}")
-    require("ops" in ids, "缺少默认主题 ops")
+    require("leodock-glass" in ids, "缺少默认主题 ops")
     orphan_css = {
         path.stem for path in theme_dir.glob("*.css")
         if path.stem not in ids
@@ -587,7 +587,7 @@ def check_release_git() -> str:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="检查北辰本地中枢项目")
+    parser = argparse.ArgumentParser(description="检查LeoDock项目")
     parser.add_argument("--skip-tests", action="store_true", help="只检查语法/结构，不运行测试")
     parser.add_argument("--release", action="store_true", help="额外检查 Git 发布边界")
     return parser.parse_args()

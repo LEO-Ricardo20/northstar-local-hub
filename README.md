@@ -1,12 +1,24 @@
-# 北辰本地中枢
+<p align="center">
+  <img src="static/assets/leodock-app-icon.png" width="96" alt="LeoDock app icon">
+</p>
+
+<h1 align="center">LEODOCK</h1>
+
+<p align="center">
+  <strong>Windows 本地服务工作台</strong><br>
+  启动、监测和诊断你的本地服务、开发项目与批处理任务。<br><br>
+  <strong>A Windows 11 workspace for launching, monitoring,<br>
+  and diagnosing local services and development tasks.</strong><br><br>
+  <sub>by <a href="https://github.com/LEO-Ricardo20">LEO-Ricardo20</a></sub>
+</p>
 
 **简体中文** | [English](README_EN.md)
 
-[![Windows CI](https://github.com/LEO-Ricardo20/northstar-local-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/LEO-Ricardo20/northstar-local-hub/actions/workflows/ci.yml)
+[![Windows CI](https://github.com/LEO-Ricardo20/leo-dock/actions/workflows/ci.yml/badge.svg)](https://github.com/LEO-Ricardo20/leo-dock/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Windows 11](https://img.shields.io/badge/Windows-11-0078D4.svg)](WINDOWS.md)
 
-Northstar Local Hub 是一个面向 Windows 11 的本地服务与批处理任务启动、监测和诊断面板。它把常用开发服务、项目启动命令和一次性脚本集中到浏览器界面中，并使用仅绑定回环地址的 Python 标准库后端。
+LeoDock（中文定位：LEO 本地工作台）是一个面向 Windows 11 的本地服务工作台。它把常用开发服务、项目启动命令和一次性脚本集中到浏览器界面中，并使用仅绑定回环地址的 Python 标准库后端。
 
 > 当前版本是 Preview。项目会执行你保存的本地命令，请只添加已经检查并信任的工作目录与命令。
 
@@ -18,14 +30,15 @@ Northstar Local Hub 是一个面向 Windows 11 的本地服务与批处理任务
 - 从项目目录识别 Node.js、Python、Go、Rust、静态站点等常见启动方式。
 - 原生选择 `.py`、`.ps1`、`.cmd`、`.bat` 和 `.js` 脚本。
 - 使用随机运行令牌、根 PID、父子进程关系与当前用户 SID 识别受控进程树。
-- “北辰光幕”界面采用深黑蓝空间、雾白玻璃、北辰蓝折射光与分级透明材质，支持浅色、深色、系统主题、命令面板和键盘排序。
+- “LeoDock Glass”界面采用深黑蓝空间、雾白玻璃、LEO 蓝折射光与分级透明材质，支持浅色、深色、系统主题、命令面板和键盘排序。
+- 侧边栏提供日志中心、设置中心、版本信息和使用说明，常用状态与帮助无需离开工作台。
 - 后端只使用 Python 标准库；前端使用原生 HTML、CSS 和 ES Modules，不依赖 CDN。
 
 ## 界面预览
 
 | 启动台 | 服务监控 |
 | --- | --- |
-| ![北辰本地中枢启动台](docs/screenshots/ops-launchpad.jpg) | ![北辰本地中枢服务监控](docs/screenshots/ops-services.jpg) |
+| ![LeoDock 启动台](docs/screenshots/leodock-launchpad.jpg) | ![LeoDock 服务监控](docs/screenshots/leodock-services.jpg) |
 
 ## 系统要求
 
@@ -37,29 +50,29 @@ Northstar Local Hub 是一个面向 Windows 11 的本地服务与批处理任务
 ## 快速开始
 
 ```powershell
-git clone https://github.com/LEO-Ricardo20/northstar-local-hub.git
-cd northstar-local-hub
+git clone https://github.com/LEO-Ricardo20/leo-dock.git
+cd leo-dock
 py -3 --version
 ```
 
 日常使用直接双击：
 
 ```text
-start-windows.cmd
+start-leodock.cmd
 ```
 
 需要查看启动输出时双击：
 
 ```text
-start-windows-debug.cmd
+start-leodock-debug.cmd
 ```
 
 也可以在 PowerShell 中启动：
 
 ```powershell
-py -3 server.py
-py -3 server.py --no-browser
-py -3 server.py --preferred-port 9603 --no-browser
+py -3 leodock.py
+py -3 leodock.py --no-browser
+py -3 leodock.py --preferred-port 9603 --no-browser
 ```
 
 默认地址为 <http://127.0.0.1:9600/>。如果端口被占用，程序会依次尝试 9601–9609。
@@ -78,7 +91,7 @@ py -3 server.py --preferred-port 9603 --no-browser
 - 每两秒刷新一次当前用户的本地监听服务。
 - 展示 PID、端口、命令、负载、时长和来源信息。
 - 新出现的端口可加入启动台、忽略或临时关闭提示。
-- Windows 无法可靠读取任意外部进程的当前工作目录，因此外部服务的“认领”只有在能可靠推断目录时才可用；由北辰本地中枢启动的服务不受影响。
+- Windows 无法可靠读取任意外部进程的当前工作目录，因此外部服务的“认领”只有在能可靠推断目录时才可用；由 LeoDock 启动的服务不受影响。
 
 ### 快捷键
 
@@ -91,26 +104,24 @@ py -3 server.py --preferred-port 9603 --no-browser
 默认运行目录：
 
 ```text
-%LOCALAPPDATA%\北辰本地中枢
+%LOCALAPPDATA%\LeoDock
 ```
 
 | 路径 | 内容 |
 | --- | --- |
-| `%LOCALAPPDATA%\北辰本地中枢\config.json` | 服务、任务、端口和界面配置 |
-| `%LOCALAPPDATA%\北辰本地中枢\config.json.bak` | 上一份良好配置 |
-| `%LOCALAPPDATA%\北辰本地中枢\icons\` | 用户上传图标和站点图标 |
-| `%LOCALAPPDATA%\北辰本地中枢\logs\` | 应用与中枢日志 |
+| `%LOCALAPPDATA%\LeoDock\config.json` | 服务、任务、端口和界面配置 |
+| `%LOCALAPPDATA%\LeoDock\config.json.bak` | 上一份良好配置 |
+| `%LOCALAPPDATA%\LeoDock\icons\` | 用户上传图标和站点图标 |
+| `%LOCALAPPDATA%\LeoDock\logs\` | 应用与中枢日志 |
 
-从旧版“总控台”首次启动时，如果新目录尚不存在，程序会从
-`%LOCALAPPDATA%\总控台` 复制配置、图标和日志；旧目录会完整保留，且不会覆盖
-已经存在的新目录。
+从早期版本首次升级时，如果新目录尚不存在，程序会自动复制已有配置、图标和日志；旧目录会完整保留，且不会覆盖已经存在的新目录。
 
 可使用专用环境变量覆盖路径：
 
 ```powershell
-$env:CONSOLE_DATA_DIR = 'D:\NorthstarData'
-$env:CONSOLE_LOG_DIR = 'D:\NorthstarLogs'
-py -3 server.py
+$env:LEODOCK_DATA_DIR = 'D:\LeoDockData'
+$env:LEODOCK_LOG_DIR = 'D:\LeoDockLogs'
+py -3 leodock.py
 ```
 
 环境变量必须指向专用绝对路径，不能直接使用盘符根目录、用户主目录或项目根目录。
@@ -157,13 +168,13 @@ py -3 tools/gen_brand_assets.py
 ## 项目结构
 
 ```text
-server.py                  Python 标准库后端
-static/                    原生前端、北辰光幕主题、字体与图标
+leodock.py                 Python 标准库后端
+static/                    原生前端、LeoDock Glass 主题、字体与图标
 tests/                     后端、前端契约和发行测试
 tools/check_project.py     完整项目检查
 tools/build_release.py     可复现发行包生成与审计
-start-windows.cmd          Windows 后台启动入口
-start-windows-debug.cmd    Windows 调试启动入口
+start-leodock.cmd          Windows 后台启动入口
+start-leodock-debug.cmd    Windows 调试启动入口
 ```
 
 ## 参与贡献

@@ -8,7 +8,7 @@ if errorlevel 1 goto :missing_python
 py -3 -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 12) else 1)" >nul 2>nul
 if errorlevel 1 goto :old_python
 
-start "" pyw.exe -3 "%~dp0server.py" --launcher
+start "" pyw.exe -3 "%~dp0leodock.py" --launcher
 exit /b 0
 
 :missing_python
@@ -18,7 +18,7 @@ pause
 exit /b 127
 
 :old_python
-echo Error: Console requires Python 3.12 or newer.
+echo Error: LeoDock requires Python 3.12 or newer.
 py -3 --version
 pause
 exit /b 126

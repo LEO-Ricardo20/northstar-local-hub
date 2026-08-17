@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""北辰本地中枢后端（单文件，仅 Python 3 标准库）。
+"""LeoDock后端（单文件，仅 Python 3 标准库）。
 
 本地服务监控 + 快速启动台：
-    py -3 server.py  →  绑定 127.0.0.1，端口 9600 起（被占 +1，最多 10 个）
+    py -3 leodock.py  →  绑定 127.0.0.1，端口 9600 起（被占 +1，最多 10 个）
 API 契约与实现要点见 AGENTS.md。
 """
 
@@ -41,43 +41,50 @@ VERSION_PATH = os.path.join(BASE_DIR, "VERSION")
 _WINDOWS_LOCAL_APP_DATA = (
     os.environ.get("LOCALAPPDATA")
     or os.path.join(os.path.expanduser("~"), "AppData", "Local"))
+PREVIOUS_DATA_DIR = os.path.join(_WINDOWS_LOCAL_APP_DATA, "北辰本地中枢")
 LEGACY_DATA_DIR = os.path.join(_WINDOWS_LOCAL_APP_DATA, "总控台")
-DEFAULT_DATA_DIR = os.path.join(_WINDOWS_LOCAL_APP_DATA, "北辰本地中枢")
+LEGACY_DATA_DIRS = (PREVIOUS_DATA_DIR, LEGACY_DATA_DIR)
+DEFAULT_DATA_DIR = os.path.join(_WINDOWS_LOCAL_APP_DATA, "LeoDock")
 DEFAULT_LOGS_DIR = os.path.join(DEFAULT_DATA_DIR, "logs")
 
 
-def resolve_runtime_dir(name, default):
+def resolve_runtime_dir(name, default, legacy_names=()):
     """解析专用运行目录，拒绝空值、相对路径和过宽目标。"""
-    if name not in os.environ:
+    selected = next(
+        (candidate for candidate in (name, *legacy_names)
+         if candidate in os.environ),
+        None,
+    )
+    if selected is None:
         return os.path.abspath(default), False
-    raw = (os.environ.get(name) or "").strip()
+    raw = (os.environ.get(selected) or "").strip()
     if not raw:
-        raise RuntimeError("%s 不能为空" % name)
+        raise RuntimeError("%s 不能为空" % selected)
     expanded = os.path.expanduser(raw)
     if not os.path.isabs(expanded):
-        raise RuntimeError("%s 必须是绝对路径" % name)
+        raise RuntimeError("%s 必须是绝对路径" % selected)
     path = os.path.abspath(expanded)
     forbidden = {os.path.abspath(os.sep), os.path.abspath(os.path.expanduser("~")),
                  os.path.abspath(BASE_DIR)}
     if path in forbidden:
-        raise RuntimeError("%s 必须指向专用子目录" % name)
+        raise RuntimeError("%s 必须指向专用子目录" % selected)
     return path, True
 
 
 DATA_DIR, DATA_DIR_OVERRIDDEN = resolve_runtime_dir(
-    "CONSOLE_DATA_DIR", DEFAULT_DATA_DIR)
+    "LEODOCK_DATA_DIR", DEFAULT_DATA_DIR, ("CONSOLE_DATA_DIR",))
 ICONS_DIR = os.path.join(DATA_DIR, "icons")
 LOGS_DIR, LOGS_DIR_OVERRIDDEN = resolve_runtime_dir(
-    "CONSOLE_LOG_DIR", DEFAULT_LOGS_DIR)
+    "LEODOCK_LOG_DIR", DEFAULT_LOGS_DIR, ("CONSOLE_LOG_DIR",))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 THEMES_DIR = os.path.join(STATIC_DIR, "themes")
 CONFIG_PATH = os.path.join(DATA_DIR, "config.json")
-INSTANCE_LOCK_PATH = os.path.join(DATA_DIR, "northstar.lock")
+INSTANCE_LOCK_PATH = os.path.join(DATA_DIR, "leodock.lock")
 
 CURRENT_SCHEMA_VERSION = 1
 
 # 默认 UI 主题：新安装与无偏好回退均使用它，主题清单中固定排首位。
-DEFAULT_UI_THEME = "ops"
+DEFAULT_UI_THEME = "leodock-glass"
 
 
 def read_project_version(path=VERSION_PATH):
@@ -109,8 +116,9 @@ LOG_BACKUPS = 3
 LOG_MAINTENANCE_SEC = 30
 STARTUP_PROBE_SEC = 0.25
 APP_STOP_TIMEOUT_SEC = 5.0
-RUN_TOKEN_ENV = "CONSOLE_RUN_TOKEN"
-RUN_TOKEN_ARG_PREFIX = "northstar-run:"
+RUN_TOKEN_ENV = "LEODOCK_RUN_TOKEN"
+RUN_TOKEN_ARG_PREFIX = "leodock-run:"
+LEGACY_RUN_TOKEN_ARG_PREFIX = "northstar-run:"
 TASK_CANCELED_EXIT_CODE = 130
 
 SELF_PID = os.getpid()
@@ -118,7 +126,7 @@ SELF_PID = os.getpid()
 # 让上层的所有权校验与既有 API/测试契约保持一致。
 SELF_UID = 1
 ICON_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".ico")
-LOG = logging.getLogger("northstar")
+LOG = logging.getLogger("leodock")
 LOG_LOCK = threading.RLock()
 MANUAL_STOP_LOCK = threading.RLock()
 MANUAL_STOP_TOKENS = set()
@@ -145,7 +153,7 @@ def public_last_exit(app):
         return value
     result = dict(value)
     if (app.get("kind") or "service") == "task":
-        # 旧版把“北辰本地中枢按钮停止”记作 canceled + null；新协议中它是 stopped。
+        # 旧版把“LeoDock按钮停止”记作 canceled + null；新协议中它是 stopped。
         if result.get("status") == "canceled" and result.get("code") is None:
             result["status"] = "stopped"
         elif (result.get("status") not in
@@ -171,7 +179,7 @@ STATIC_TYPES = {
 }
 
 PLACEHOLDER_HTML = """<!DOCTYPE html>
-<html lang="zh-CN"><head><meta charset="utf-8"><title>北辰本地中枢</title>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>LeoDock</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 body{font-family:Segoe UI,BlinkMacSystemFont,"PingFang SC",sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f5f5f7;color:#1d1d1f}
@@ -180,7 +188,7 @@ h1{font-size:20px;margin:0 0 14px}p{color:#6e6e73;font-size:14px;line-height:1.8
 code{background:#f5f5f7;border:1px solid rgba(0,0,0,.05);border-radius:6px;padding:2px 7px;font-family:ui-monospace,Menlo,monospace;font-size:13px}
 </style></head>
 <body><div class="card">
-<h1>🖥 北辰本地中枢后端运行中</h1>
+<h1>🖥 LeoDock后端运行中</h1>
 <p>前端文件 <code>static/index.html</code> 尚未提供，界面暂不可用。</p>
 <p>API 已就绪：<code>GET /api/state</code></p>
 </div></body></html>"""
@@ -253,7 +261,7 @@ def _install_migrated_directory(target, populate):
     # 父目录可能是用户共用的 Local AppData，
     # 只确保存在，不擅自改它的现有权限。
     os.makedirs(parent, mode=0o700, exist_ok=True)
-    staging = tempfile.mkdtemp(prefix=".northstar-migration-", dir=parent)
+    staging = tempfile.mkdtemp(prefix=".leodock-migration-", dir=parent)
     installed = False
     try:
         os.chmod(staging, 0o700)
@@ -274,7 +282,7 @@ def _install_migrated_directory(target, populate):
 
 def migrate_legacy_runtime_data(
         data_dir=DATA_DIR, logs_dir=LOGS_DIR,
-        legacy_data_dir=LEGACY_DATA_DIR,
+        legacy_data_dir=LEGACY_DATA_DIRS,
         data_overridden=DATA_DIR_OVERRIDDEN,
         logs_overridden=LOGS_DIR_OVERRIDDEN):
     """首次运行时将项目内旧数据复制到 Windows 用户数据目录。
@@ -283,19 +291,27 @@ def migrate_legacy_runtime_data(
     旧文件不会被删除或改权限。
     """
     result = {"dataMigrated": False, "logsMigrated": False}
-    legacy_data_dir = os.path.abspath(legacy_data_dir)
+    if isinstance(legacy_data_dir, (str, bytes, os.PathLike)):
+        legacy_data_dirs = (os.path.abspath(legacy_data_dir),)
+    else:
+        legacy_data_dirs = tuple(
+            os.path.abspath(path) for path in legacy_data_dir)
     data_dir = os.path.abspath(data_dir)
     logs_dir = os.path.abspath(logs_dir)
+    data_source = next(
+        (path for path in legacy_data_dirs
+         if path != data_dir and os.path.isdir(path)),
+        None,
+    )
 
-    if (not data_overridden and data_dir != legacy_data_dir
-            and os.path.isdir(legacy_data_dir)
+    if (not data_overridden and data_source
             and not os.path.lexists(data_dir)):
         def populate_data(staging):
             for name in ("config.json", "config.json.bak"):
                 _copy_private_regular_file(
-                    os.path.join(legacy_data_dir, name),
+                    os.path.join(data_source, name),
                     os.path.join(staging, name))
-            source_icons = os.path.join(legacy_data_dir, "icons")
+            source_icons = os.path.join(data_source, "icons")
             if os.path.isdir(source_icons) and not os.path.islink(source_icons):
                 target_icons = os.path.join(staging, "icons")
                 os.mkdir(target_icons, 0o700)
@@ -309,9 +325,14 @@ def migrate_legacy_runtime_data(
         result["dataMigrated"] = _install_migrated_directory(
             data_dir, populate_data)
 
-    legacy_logs = os.path.join(legacy_data_dir, "logs")
-    if (not logs_overridden and logs_dir != legacy_logs
-            and os.path.isdir(legacy_logs) and not os.path.islink(legacy_logs)
+    legacy_logs = next(
+        (os.path.join(path, "logs") for path in legacy_data_dirs
+         if os.path.join(path, "logs") != logs_dir
+         and os.path.isdir(os.path.join(path, "logs"))
+         and not os.path.islink(os.path.join(path, "logs"))),
+        None,
+    )
+    if (not logs_overridden and legacy_logs
             and not os.path.lexists(logs_dir)):
         def populate_logs(staging):
             for name in os.listdir(legacy_logs):
@@ -454,6 +475,8 @@ class Config:
                     app[key] = item[key]
             apps.append(app)
         data["apps"] = apps
+        if data["uiTheme"] == "ops":
+            data["uiTheme"] = DEFAULT_UI_THEME
         return data
 
     def _load(self):
@@ -917,7 +940,7 @@ def process_cwds(pids):
     pids = [int(p) for p in pids]
     if not pids:
         return {}
-    # Windows 不公开任意进程的当前目录。北辰本地中枢启动的进程使用持久化
+    # Windows 不公开任意进程的当前目录。LeoDock 启动的进程使用持久化
     # cwd 校验；外部进程认领仅在能从命令行解析显式路径时提供。
     snap = ps_snapshot(pids, with_uid=False)
     result = {}
@@ -1001,7 +1024,7 @@ def project_name(cwd):
 
 # ---------------------------------------------------------------- 进程溯源
 # 沿 PPID 链向上识别「是谁启动了这个服务」：AI 编程助手、编辑器、终端、
-# 北辰本地中枢自身或 系统启动器。结果只是展示用的尽力判断，不影响任何启停逻辑。
+# LeoDock 自身或系统启动器。结果只是展示用的尽力判断，不影响任何启停逻辑。
 
 # 向上爬时要跳过的包装层（按 argv[0] 基名匹配）：壳、包管理器与任务执行器
 _ORIGIN_SKIP_NAMES = {
@@ -1062,10 +1085,10 @@ def origin_snapshot():
 def attribute_origin(pid, table):
     """沿 PPID 链识别来源应用，返回 {"label", "icon"} 或 None。
 
-    祖先 args 中带有北辰本地中枢 run-token 前缀（northstar-run:）即判定为
-    「北辰本地中枢启动」——本机任一北辰本地中枢实例的受管进程组都持有该标记。
+    祖先 args 中带有LeoDock run-token 前缀（leodock-run:）即判定为
+    「LeoDock 启动」——本机任一 LeoDock 实例的受管进程组都持有该标记。
     未识别的中间层先记为候选并继续上爬；AI 助手 / 编辑器 / 终端 /
-    北辰本地中枢 / 系统启动器 是更优答案，都没有时才以最近的未识别进程命名。
+    LeoDock / 系统启动器 是更优答案，都没有时才以最近的未识别进程命名。
     最多上爬 12 层，遇到环或缺失即终止。
     """
     cur, seen, candidate = pid, set(), None
@@ -1080,8 +1103,9 @@ def attribute_origin(pid, table):
         parent_args = (table.get(ppid) or (0, ""))[1] or ""
         if ppid <= 1:
             return candidate or {"label": "系统", "icon": "server"}
-        if RUN_TOKEN_ARG_PREFIX in parent_args:
-            return {"label": "北辰本地中枢", "icon": "rocket"}
+        if (RUN_TOKEN_ARG_PREFIX in parent_args
+                or LEGACY_RUN_TOKEN_ARG_PREFIX in parent_args):
+            return {"label": "LeoDock", "icon": "rocket"}
         hay = parent_args.casefold()
         for pattern, label in _ORIGIN_AGENT_PATTERNS:
             if pattern.search(hay):
@@ -1440,7 +1464,7 @@ def build_apps(cfg, listeners, groups=None):
     return apps
 
 
-def build_state(cfg, northstar_port, config_health=None):
+def build_state(cfg, leodock_port, config_health=None):
     degraded_reasons = []
     # 一次 pgid 快照供 build_services / build_apps 共享，避免每轮两次全量 ps。
     needs_groups = any(
@@ -1476,9 +1500,9 @@ def build_state(cfg, northstar_port, config_health=None):
         "watched": watched,
         "apps": apps,
         "watchedKeywords": cfg.get("watchedKeywords") or [],
-        "northstarPort": northstar_port,
-        "northstarPid": SELF_PID,
-        "northstarCwd": BASE_DIR,
+        "leodockPort": leodock_port,
+        "leodockPid": SELF_PID,
+        "leodockCwd": BASE_DIR,
         "version": APP_VERSION,
         "schemaVersion": cfg.get("schemaVersion", CURRENT_SCHEMA_VERSION),
         "degraded": bool(degraded_reasons),
@@ -1506,13 +1530,13 @@ def invalidate_state_cache():
         WINDOWS_LISTENER_CACHE["mono"] = 0.0
 
 
-def get_state_snapshot(cfg, northstar_port):
+def get_state_snapshot(cfg, leodock_port):
     now = time.monotonic()
     with _state_cache_lock:
         cached = _state_cache["state"]
         if cached is not None and now - _state_cache["mono"] < STATE_CACHE_TTL:
             return cached
-        state = build_state(cfg.snapshot(), northstar_port, cfg.health_info())
+        state = build_state(cfg.snapshot(), leodock_port, cfg.health_info())
         _state_cache["mono"] = time.monotonic()
         _state_cache["state"] = state
         return state
@@ -1600,7 +1624,7 @@ def process_uid(pid):
 def kill_process(pid, force):
     """结束单个进程；只允许当前用户的进程。返回 (ok, error)。"""
     if pid == SELF_PID:
-        return False, "不能结束北辰本地中枢自身进程"
+        return False, "不能结束 LeoDock 自身进程"
     uid = process_uid(pid)
     if uid is None:
         return False, "进程不存在"
@@ -2056,7 +2080,7 @@ def inspect_app_health(app):
         if not runtime_ok:
             add(
                 "runtime-missing", "找不到 %s" % executable_base,
-                "北辰本地中枢的运行环境里找不到命令：%s" % executable,
+                "LeoDock的运行环境里找不到命令：%s" % executable,
                 "安装对应运行时，或在编辑中修改执行命令。",
                 "edit-command",
             )
@@ -2267,7 +2291,7 @@ def detect_project(root):
                   else python_command)
         add(prefix + " manage.py runserver", "Django 开发服务器", "manage.py", 8000, 20)
     else:
-        for module_file in ("app.py", "main.py", "server.py"):
+        for module_file in ("app.py", "main.py", "leodock.py"):
             module_text = _read_project_text(root, module_file)
             if module_text is None:
                 continue
@@ -2462,7 +2486,7 @@ def inspect_attach_process(cfg, app, pid):
     if app_alive_sign(app):
         return False, "应用已在运行", {"status": 409}
     if pid == os.getpid():
-        return False, "不能认领北辰本地中枢自身", {"status": 409}
+        return False, "不能认领 LeoDock 自身", {"status": 409}
     listeners = scan_listeners()
     if (pid, port) not in listeners:
         return False, "PID %d 并未监听端口 %d，进程可能已退出" % (pid, port), {"status": 409}
@@ -2657,7 +2681,7 @@ def http_get(url, port, timeout=3, limit=262144):
         return None, None
     try:
         req = urllib.request.Request(
-            url, headers={"User-Agent": "Console/1.0", "Accept": "*/*"})
+            url, headers={"User-Agent": "LeoDock/1.0", "Accept": "*/*"})
         opener = urllib.request.build_opener(
             urllib.request.ProxyHandler({}), LoopbackRedirectHandler(port))
         with opener.open(req, timeout=timeout) as r:
@@ -2765,7 +2789,7 @@ def diagnose_app(cfg, app):
     if m and "cannot find module" not in log_lower:
         add("runtime-missing", "找不到运行时：%s" % m.group(1),
             "系统里找不到 %s 这个命令。" % m.group(1),
-                "确认该运行时已安装（如 node / Python / pnpm）；北辰本地中枢启动时会补常见 PATH，但程序本身需要存在。")
+                "确认该运行时已安装（如 node / Python / pnpm）；LeoDock 启动时会补常见 PATH，但程序本身需要存在。")
 
     if "missing script" in log_lower and has_pkg:
         script_names = []
@@ -2810,7 +2834,7 @@ def diagnose_app(cfg, app):
         elif code == 127:
             add("not-found", "命令不存在（exit 127）",
                 "退出码 127 表示 shell 找不到这个命令。",
-                "确认命令已安装且在 PATH 里；北辰本地中枢会补常见路径，但程序本身要存在。")
+                "确认命令已安装且在 PATH 里；LeoDock会补常见路径，但程序本身要存在。")
         elif (isinstance(code, int) and code == 0
               and (app.get("kind") or "service") != "task"):
             add("quick-exit", "命令立即正常退出（exit 0）",
@@ -2918,20 +2942,20 @@ def serialized_app_operation(fn):
     return wrapped
 
 
-class ConsoleServer(ThreadingHTTPServer):
+class LeoDockServer(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
     def __init__(self, addr, handler_cls, cfg, port):
         super().__init__(addr, handler_cls)
         self.cfg = cfg
-        self.northstar_port = self.server_address[1]
+        self.leodock_port = self.server_address[1]
         self.control_token = secrets.token_urlsafe(32)
         self._app_locks = {}
         self._app_locks_guard = threading.Lock()
-        self._northstar_action_guard = threading.Lock()
-        self._northstar_action = None
-        self._northstar_helper_pid = None
+        self._leodock_action_guard = threading.Lock()
+        self._leodock_action = None
+        self._leodock_helper_pid = None
 
     def handle_error(self, request, client_address):
         """空闲连接超时 / 客户端中途断开属正常现象，不刷 traceback。"""
@@ -2951,27 +2975,27 @@ class ConsoleServer(ThreadingHTTPServer):
         with self._app_locks_guard:
             self._app_locks.pop(app_id, None)
 
-    def reserve_northstar_action(self, action):
-        with self._northstar_action_guard:
-            if self._northstar_action is not None:
-                return False, self._northstar_action, self._northstar_helper_pid
-            self._northstar_action = action
+    def reserve_leodock_action(self, action):
+        with self._leodock_action_guard:
+            if self._leodock_action is not None:
+                return False, self._leodock_action, self._leodock_helper_pid
+            self._leodock_action = action
             return True, action, None
 
-    def set_northstar_helper_pid(self, pid):
-        with self._northstar_action_guard:
-            self._northstar_helper_pid = pid
+    def set_leodock_helper_pid(self, pid):
+        with self._leodock_action_guard:
+            self._leodock_helper_pid = pid
 
-    def release_northstar_action(self, action):
-        with self._northstar_action_guard:
-            if self._northstar_action == action:
-                self._northstar_action = None
-                self._northstar_helper_pid = None
+    def release_leodock_action(self, action):
+        with self._leodock_action_guard:
+            if self._leodock_action == action:
+                self._leodock_action = None
+                self._leodock_helper_pid = None
 
 
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
-    server_version = "Console/%s" % APP_VERSION
+    server_version = "LeoDock/%s" % APP_VERSION
     # 每连接 socket 超时：慢速/谎报 Content-Length 的客户端无法无限占住
     # 线程（默认 None 会永久阻塞 rfile.read）；空闲 keep-alive 连接也会回收。
     SOCKET_TIMEOUT_SEC = 30.0
@@ -2994,7 +3018,7 @@ class Handler(BaseHTTPRequestHandler):
         sys.stderr.write("%s - %s\n" % (self.client_address[0], fmt % args))
 
     def _parsed_request_host(self):
-        """Return (hostname, port) only for the exact local northstar origin."""
+        """Return (hostname, port) only for the exact local leodock origin."""
         raw = (self.headers.get("Host") or "").strip()
         if not raw or any(ch in raw for ch in "\r\n,@/"):
             return None
@@ -3006,7 +3030,7 @@ class Handler(BaseHTTPRequestHandler):
             return None
         if hostname not in ("127.0.0.1", "localhost", "::1"):
             return None
-        if port != self.server.northstar_port:
+        if port != self.server.leodock_port:
             return None
         return hostname, port
 
@@ -3034,7 +3058,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             cookie = SimpleCookie()
             cookie.load(self.headers.get("Cookie") or "")
-            morsel = cookie.get("northstar_session")
+            morsel = cookie.get("leodock_session")
             return bool(morsel and secrets.compare_digest(
                 morsel.value, self.server.control_token))
         except (KeyError, TypeError, ValueError):
@@ -3121,7 +3145,7 @@ class Handler(BaseHTTPRequestHandler):
         if set_cookie and self._request_host_allowed():
             self.send_header(
                 "Set-Cookie",
-                "northstar_session=%s; Path=/; HttpOnly; SameSite=Strict" %
+                "leodock_session=%s; Path=/; HttpOnly; SameSite=Strict" %
                 self.server.control_token)
         self.end_headers()
         if body:
@@ -3194,10 +3218,10 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if path == "/api/state":
                 self.send_json(get_state_snapshot(self.server.cfg,
-                                                  self.server.northstar_port))
+                                                  self.server.leodock_port))
                 return
-            if path == "/api/northstar/log":
-                self.handle_northstar_log(parsed.query)
+            if path == "/api/leodock/log":
+                self.handle_leodock_log(parsed.query)
                 return
             m = APP_ROUTE_RE.match(path)
             if m and m.group(2) == "logs":
@@ -3268,10 +3292,10 @@ class Handler(BaseHTTPRequestHandler):
         tail = self._parse_log_tail(query)
         self.send_json({"text": read_log_tail(app_id, tail)})
 
-    def handle_northstar_log(self, query):
-        """北辰本地中枢自身日志（data/logs/northstar.log），与维护线程共用轮转。"""
+    def handle_leodock_log(self, query):
+        """LeoDock 自身日志（data/logs/leodock.log），与维护线程共用轮转。"""
         tail = self._parse_log_tail(query)
-        self.send_json({"text": read_log_tail("northstar", tail)})
+        self.send_json({"text": read_log_tail("leodock", tail)})
 
     @staticmethod
     def _parse_log_tail(query, default=300):
@@ -3310,13 +3334,13 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/project/detect":
                 self.handle_project_detect()
                 return
-            if path == "/api/northstar/restart":
+            if path == "/api/leodock/restart":
                 self.discard_body()
-                self.handle_northstar_restart()
+                self.handle_leodock_restart()
                 return
-            if path == "/api/northstar/stop":
+            if path == "/api/leodock/stop":
                 self.discard_body()
-                self.handle_northstar_stop()
+                self.handle_leodock_stop()
                 return
             if path == "/api/apps":
                 self.handle_app_create()
@@ -3411,44 +3435,44 @@ class Handler(BaseHTTPRequestHandler):
         self.server.cfg.update(lambda d: d.__setitem__("uiTheme", theme_id))
         self.send_json({"ok": True, "theme": theme_id})
 
-    def handle_northstar_restart(self):
-        reserved, current, helper_pid = self.server.reserve_northstar_action("restart")
+    def handle_leodock_restart(self):
+        reserved, current, helper_pid = self.server.reserve_leodock_action("restart")
         if not reserved:
             if current == "restart":
                 self.send_json({"ok": True, "pid": SELF_PID,
                                 "helperPid": helper_pid,
-                                "port": self.server.northstar_port,
+                                "port": self.server.leodock_port,
                                 "alreadyScheduled": True})
             else:
-                self.send_err(409, "北辰本地中枢正在停止，无法重复重启")
+                self.send_err(409, "LeoDock正在停止，无法重复重启")
             return
         try:
-            helper_pid = schedule_northstar_restart(
-                self.server, self.server.northstar_port)
+            helper_pid = schedule_leodock_restart(
+                self.server, self.server.leodock_port)
         except OSError as e:
-            self.server.release_northstar_action("restart")
+            self.server.release_leodock_action("restart")
             self.send_err(500, "无法启动重启程序: %s" % e)
             return
-        self.server.set_northstar_helper_pid(helper_pid)
+        self.server.set_leodock_helper_pid(helper_pid)
         invalidate_state_cache()
         self.send_json({"ok": True, "pid": SELF_PID,
                         "helperPid": helper_pid,
-                        "port": self.server.northstar_port})
+                        "port": self.server.leodock_port})
 
-    def handle_northstar_stop(self):
-        reserved, current, _ = self.server.reserve_northstar_action("stop")
+    def handle_leodock_stop(self):
+        reserved, current, _ = self.server.reserve_leodock_action("stop")
         if not reserved:
             if current == "stop":
                 self.send_json({"ok": True, "pid": SELF_PID,
-                                "port": self.server.northstar_port,
+                                "port": self.server.leodock_port,
                                 "alreadyScheduled": True})
             else:
-                self.send_err(409, "北辰本地中枢正在重启，无法同时停止")
+                self.send_err(409, "LeoDock正在重启，无法同时停止")
             return
-        schedule_northstar_stop(self.server)
+        schedule_leodock_stop(self.server)
         invalidate_state_cache()
         self.send_json({"ok": True, "pid": SELF_PID,
-                        "port": self.server.northstar_port})
+                        "port": self.server.leodock_port})
 
     def handle_kill(self):
         data, err = self.read_json_body()
@@ -4007,14 +4031,14 @@ def open_browser_later(port, delay=0.8):
     threading.Thread(target=_open, daemon=True).start()
 
 
-def find_northstar_instances():
-    """查找从同一项目目录启动的北辰本地中枢，用于双击启动器去重。"""
+def find_leodock_instances():
+    """查找从同一项目目录启动的LeoDock，用于双击启动器去重。"""
     snap = ps_snapshot(None, with_uid=True)
     candidates = []
     for pid, info in snap.items():
         args = info.get("args") or ""
         if (pid == SELF_PID or info.get("uid") != SELF_UID
-                or "server.py" not in args
+                or "leodock.py" not in args
                 or "--restart-helper" in args):
             continue
         candidates.append(pid)
@@ -4051,23 +4075,23 @@ def find_northstar_instances():
 def _launcher_dialog(message):
     prompt = message + "\n\n选择“是”打开控制台；选择“否”重新启动。"
     result = ctypes.windll.user32.MessageBoxW(
-        None, prompt, "北辰本地中枢", 0x00000003 | 0x00000040)
+        None, prompt, "LeoDock", 0x00000003 | 0x00000040)
     return {6: "打开控制台", 7: "重新启动"}.get(result)
 
 
 def _launcher_alert(message):
     ctypes.windll.user32.MessageBoxW(
-        None, message, "北辰本地中枢", 0x00000010)
+        None, message, "LeoDock", 0x00000010)
 
 
 def launcher_main():
     """Windows 启动脚本的无命令启动入口。"""
-    instances = find_northstar_instances()
+    instances = find_leodock_instances()
     if not instances:
         try:
             main(log_to_file=True)
         except Exception:
-            _launcher_alert("北辰本地中枢启动失败。请检查数据目录权限和 northstar.log。")
+            _launcher_alert("LeoDock 启动失败。请检查数据目录权限和 leodock.log。")
             raise
         return
     labels = []
@@ -4077,7 +4101,7 @@ def launcher_main():
     extra = ("\n\n检测到 %d 个同项目实例，重启时会合并为一个。" % len(instances)
              if len(instances) > 1 else "")
     choice = _launcher_dialog(
-        "北辰本地中枢已在运行：\n" + "\n".join(labels) + extra)
+        "LeoDock已在运行：\n" + "\n".join(labels) + extra)
     if choice == "打开控制台":
         ports = [p for item in instances for p in item["ports"]]
         port = min(ports) if ports else PORT_START
@@ -4100,17 +4124,17 @@ def launcher_main():
         time.sleep(0.1)
     survivors = [pid for pid in targets if pid_alive(pid)]
     if survivors:
-        _launcher_alert("旧北辰本地中枢未能正常退出（PID %s），未强制结束。" %
+        _launcher_alert("旧LeoDock未能正常退出（PID %s），未强制结束。" %
                         "、".join(str(pid) for pid in survivors))
         return
     try:
         main(preferred_port=preferred, log_to_file=True)
     except Exception:
-        _launcher_alert("北辰本地中枢重启失败。请检查数据目录权限和 northstar.log。")
+        _launcher_alert("LeoDock重启失败。请检查数据目录权限和 leodock.log。")
         raise
 
 
-def schedule_northstar_restart(server, preferred_port):
+def schedule_leodock_restart(server, preferred_port):
     """启动独立 helper，响应发出后关闭当前 HTTP 服务。"""
     helper = subprocess.Popen(
         [sys.executable, os.path.abspath(__file__), "--restart-helper",
@@ -4125,7 +4149,7 @@ def schedule_northstar_restart(server, preferred_port):
     return helper.pid
 
 
-def schedule_northstar_stop(server):
+def schedule_leodock_stop(server):
     """响应发送完成后关闭 HTTP 服务，不结束启动台里的独立进程组。"""
     def _shutdown():
         time.sleep(0.25)
@@ -4134,7 +4158,7 @@ def schedule_northstar_stop(server):
 
 
 def restart_helper(old_pid, preferred_port):
-    """等旧进程释放端口后，在 helper 原地 exec 新北辰本地中枢。"""
+    """等旧进程释放端口后，在 helper 原地 exec 新LeoDock。"""
     deadline = time.monotonic() + 12.0
     while time.monotonic() < deadline and pid_alive(old_pid):
         time.sleep(0.1)
@@ -4148,7 +4172,7 @@ def restart_helper(old_pid, preferred_port):
     return 0 if completed.pid else 1
 
 
-def _run_northstar(preferred_port=None, open_browser=True):
+def _run_leodock(preferred_port=None, open_browser=True):
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -4164,7 +4188,7 @@ def _run_northstar(preferred_port=None, open_browser=True):
         candidates.insert(0, preferred_port)
     for p in candidates:
         try:
-            server = ConsoleServer((HOST, p), Handler, cfg, p)
+            server = LeoDockServer((HOST, p), Handler, cfg, p)
             port = p
             break
         except OSError:
@@ -4174,7 +4198,7 @@ def _run_northstar(preferred_port=None, open_browser=True):
               (PORT_START, PORT_START + PORT_TRIES - 1))
         sys.exit(1)
 
-    print("北辰本地中枢已启动: http://%s:%d/  (Ctrl+C 停止)" % (HOST, port), flush=True)
+    print("LeoDock已启动: http://%s:%d/  (Ctrl+C 停止)" % (HOST, port), flush=True)
     if open_browser:
         open_browser_later(port)
     try:
@@ -4186,9 +4210,9 @@ def _run_northstar(preferred_port=None, open_browser=True):
         print("已停止", flush=True)
 
 
-def redirect_northstar_output():
+def redirect_leodock_output():
     """在运行目录迁移完成后，将后台启动输出追加到用户日志目录。"""
-    path = os.path.join(LOGS_DIR, "northstar.log")
+    path = os.path.join(LOGS_DIR, "leodock.log")
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
     try:
         _chmod_open_file(fd, path, 0o600)
@@ -4219,10 +4243,10 @@ def redirect_northstar_output():
 
 
 def main(preferred_port=None, open_browser=True, log_to_file=False):
-    """Run exactly one northstar for this project/data directory."""
+    """Run exactly one leodock for this project/data directory."""
     migration = prepare_runtime_storage()
     if log_to_file or sys.stdout is None or sys.stderr is None:
-        redirect_northstar_output()
+        redirect_leodock_output()
     if migration["dataMigrated"]:
         print("已将旧版配置和图标复制到: %s" % DATA_DIR,
               flush=True)
@@ -4231,15 +4255,15 @@ def main(preferred_port=None, open_browser=True, log_to_file=False):
               flush=True)
     instance_lock = acquire_instance_lock()
     if instance_lock is None:
-        print("北辰本地中枢已在运行（同一数据目录只允许一个实例）。", flush=True)
+        print("LeoDock已在运行（同一数据目录只允许一个实例）。", flush=True)
         if open_browser:
-            instances = find_northstar_instances()
+            instances = find_leodock_instances()
             ports = [port for item in instances for port in item.get("ports", [])]
             if ports:
                 webbrowser.open("http://%s:%d/" % (HOST, min(ports)))
         return False
     try:
-        _run_northstar(preferred_port, open_browser)
+        _run_leodock(preferred_port, open_browser)
         return True
     finally:
         release_instance_lock(instance_lock)

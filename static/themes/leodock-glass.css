@@ -1,6 +1,6 @@
 /* ============================================================
-   北辰本地中枢主题 — NORTHSTAR GLASS / 北辰光幕
-   深黑蓝空间 · 雾白玻璃 · 北辰蓝高光 · 流体折射光幕
+   LeoDock主题 — LEODOCK GLASS / LeoDock Glass
+   深黑蓝空间 · 雾白玻璃 · LEO 蓝高光 · 流体折射光幕
    分级透明材质 + 局部辉光 + 高密度运行信息，深浅双模式
    由 #themeCss 整包加载
    ============================================================ */
@@ -222,7 +222,7 @@ kbd {
   color: var(--ink-3); white-space: nowrap;
 }
 .side-controls { display: flex; align-items: center; gap: 7px; }
-.northstar-control {
+.leodock-control {
   display: inline-flex; align-items: center; gap: 6px;
   height: 32px; padding: 0 12px;
   border: 1px solid var(--line); border-radius: 8px;
@@ -230,12 +230,12 @@ kbd {
   font-size: 12px; font-weight: 600; color: var(--ink-2);
   transition: all 0.13s ease;
 }
-.northstar-control:hover:not(:disabled) { border-color: var(--line-2); color: var(--ink); }
-.northstar-control:disabled { opacity: 0.45; cursor: default; }
-.northstar-port { font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--accent); }
-.northstar-control.danger:hover:not(:disabled) { border-color: var(--red); color: var(--red); }
-.northstar-control.needs-activation { border-style: dashed; }
-.northstar-control.restarting .ic { animation: spin 1s steps(8) infinite; }
+.leodock-control:hover:not(:disabled) { border-color: var(--line-2); color: var(--ink); }
+.leodock-control:disabled { opacity: 0.45; cursor: default; }
+.leodock-port { font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--accent); }
+.leodock-control.danger:hover:not(:disabled) { border-color: var(--red); color: var(--red); }
+.leodock-control.needs-activation { border-style: dashed; }
+.leodock-control.restarting .ic { animation: spin 1s steps(8) infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .icon-btn {
@@ -999,7 +999,7 @@ body.dragging-on { cursor: grabbing; user-select: none; -webkit-user-select: non
 }
 @media (max-width: 1024px) {
   /* 单行顶栏先收起次要信息，避免导航在 900px 断点前被压缩换行。 */
-  .side-stats, .northstar-port { display: none; }
+  .side-stats, .leodock-port { display: none; }
 }
 @media (max-width: 900px) {
   body { overflow: auto; }

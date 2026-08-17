@@ -23,7 +23,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: 北辰本地中枢版本或 commit
+      label: LeoDock版本或 commit
       placeholder: 例如 1.0.0 或 abc1234
     validations:
       required: true

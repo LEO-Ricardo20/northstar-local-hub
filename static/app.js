@@ -1,6 +1,6 @@
 'use strict';
 /* ============================================================
-   app.js — 入口：视图切换 / 轮询 / 命令面板 / 北辰本地中枢自身
+   app.js — 入口：视图切换 / 轮询 / 命令面板 / LeoDock 自身
    ============================================================ */
 import { $, el, setText, setChildren, icon, escapeHtml,
   post, act, toast, state, DISCONNECTED_TEXT, notifyTaskCompletions,
@@ -13,7 +13,8 @@ import { renderLaunchpad, toggleApp, closePortDiagnostic, closeAppDiagnosis } fr
 import { renderServices, observePortDiscovery,
   suspendPortDiscovery } from './js/services.js';
 import { initWidgets, renderWidgets, openLogsCenter, closeLogsCenter,
-  openSettingsCenter, closeSettingsCenter, resetFeedBaseline } from './js/widgets.js';
+  openSettingsCenter, closeSettingsCenter, openVersionInfo, closeVersionInfo,
+  openUsageGuide, closeUsageGuide, resetFeedBaseline } from './js/widgets.js';
 import { buildGlyphGrid, initAppModal, initLogDrawer, openConfirm,
   openAppModal, closeAppModal, closeConfirm, openLogs, closeLogs,
   openConsoleLog } from './js/overlays.js';
@@ -21,7 +22,7 @@ import { configuredPort, actualPorts, portIsOpenable,
   preferredOpenPort } from './js/ports.js';
 
 const shortcutPrefix = 'Ctrl+';
-const launcherName = 'start-windows.cmd';
+const launcherName = 'start-leodock.cmd';
 document.querySelectorAll('[data-shortcut]').forEach(node => {
   node.textContent = shortcutPrefix + node.dataset.shortcut;
 });
@@ -39,7 +40,7 @@ const cmdkTrigger = $('#cmdkTrigger');
 const restartConsoleBtn = $('#restartConsoleBtn');
 const restartConsoleIcon = $('#restartConsoleIcon');
 const restartConsoleLabel = $('#restartConsoleLabel');
-const northstarPortLabel = $('#northstarPortLabel');
+const leodockPortLabel = $('#leodockPortLabel');
 const stopConsoleBtn = $('#stopConsoleBtn');
 const stopConsoleIcon = $('#stopConsoleIcon');
 const stopConsoleLabel = $('#stopConsoleLabel');
@@ -56,7 +57,7 @@ let firstRender = true;          // 首屏渲染（stagger 入场）
 function switchView(v) {
   if (state.view === v) return;
   state.view = v;
-  localStorage.setItem('northstar-view', v);
+  localStorage.setItem('leodock-view', v);
   applyView();
   /* 强制重排以重播视图进入动画 */
   const active = v === 'launchpad' ? viewLaunchpad : viewServices;
@@ -153,14 +154,14 @@ function poll(force = false) {
       notifyTaskCompletions(state.data, data);
       state.data = data;
       state.lastUpdate = new Date();
-      const restartCompleted = state.restartingFrom && data.northstarPid
-        && data.northstarPid !== state.restartingFrom;
+      const restartCompleted = state.restartingFrom && data.leodockPid
+        && data.leodockPid !== state.restartingFrom;
       if (restartCompleted) {
         clearTimeout(restartDeadlineTimer);
         restartDeadlineTimer = null;
         state.restartingFrom = null;
         setConnected(true);
-        toast('北辰本地中枢已重新启动');
+        toast('LeoDock已重新启动');
       } else if (!state.restartingFrom && !state.stopping) {
         setConnected(true);
       }
@@ -168,11 +169,11 @@ function poll(force = false) {
     } catch (e) {
       suspendPortDiscovery();
       resetFeedBaseline();
-      if (e && e.name !== 'AbortError') northstar.error('状态刷新失败', e);
+      if (e && e.name !== 'AbortError') leodock.error('状态刷新失败', e);
       /* 页面进入后台时主动取消请求，不把它误报成断连。 */
       if (!document.hidden || timedOut) {
         const denied = e.status === 401 || e.status === 403;
-        setConnected(false, denied ? '控制台拒绝了当前页面的访问，请重新打开北辰本地中枢。' : '');
+        setConnected(false, denied ? '控制台拒绝了当前页面的访问，请重新打开LeoDock。' : '');
       }
     } finally {
       clearTimeout(timeout);
@@ -250,9 +251,9 @@ function setConnected(ok, message = '') {
 }
 function render() {
   if (!state.data) return;
-  const northstarPid = Number(state.data.northstarPid);
-  const restartSupported = Number.isInteger(northstarPid) && northstarPid > 0;
-  setText(northstarPortLabel, state.data.northstarPort ? ':' + state.data.northstarPort : ':----');
+  const leodockPid = Number(state.data.leodockPid);
+  const restartSupported = Number.isInteger(leodockPid) && leodockPid > 0;
+  setText(leodockPortLabel, state.data.leodockPort ? ':' + state.data.leodockPort : ':----');
   setText(restartConsoleLabel, state.restartingFrom
     ? '重启中' : restartSupported ? '重启' : '启用');
   setText(stopConsoleLabel, state.stopping ? '停止中' : '停止');
@@ -260,10 +261,10 @@ function render() {
   stopConsoleBtn.disabled = !!state.restartingFrom || state.stopping;
   restartConsoleBtn.classList.toggle('needs-activation', !restartSupported);
   restartConsoleBtn.classList.toggle('restarting', !!state.restartingFrom);
-  restartConsoleBtn.setAttribute('aria-label', restartSupported ? '重启北辰本地中枢' : '启用一键重启');
+  restartConsoleBtn.setAttribute('aria-label', restartSupported ? '重启LeoDock' : '启用一键重启');
   restartConsoleBtn.title = restartSupported
-    ? '重启北辰本地中枢 · PID ' + northstarPid +
-      (state.data.northstarCwd ? ' · ' + state.data.northstarCwd : '')
+    ? '重启LeoDock · PID ' + leodockPid +
+      (state.data.leodockCwd ? ' · ' + state.data.leodockCwd : '')
     : '当前是旧版后台，点击查看启用方法';
   /* 侧栏计数：启动台 = 运行中应用数；服务监控 = 我的服务数 */
   const apps = state.data.apps || [];
@@ -273,7 +274,7 @@ function render() {
   setText(navCountLaunch, runningApps ? String(runningApps) : '');
   setText(navCountSvc, mineCount ? String(mineCount) : '');
   setText(sideStats, '运行 ' + runningApps + ' · 服务 ' + mineCount +
-    (state.data.northstarPort ? ' · :' + state.data.northstarPort : ''));
+    (state.data.leodockPort ? ' · :' + state.data.leodockPort : ''));
   applyUiTheme(currentUiTheme());
   renderLaunchpad(state.data.apps || [], firstRender);
   renderServices(state.data, firstRender);
@@ -284,7 +285,7 @@ function render() {
 function showConsoleActivationInfo(action) {
   openConfirm({
     title: '先启用后台控制',
-    bodyHtml: '当前 <b>' + escapeHtml(northstarPortLabel.textContent || '北辰本地中枢') +
+    bodyHtml: '当前 <b>' + escapeHtml(leodockPortLabel.textContent || 'LeoDock') +
       '</b> 是修改前启动的旧后台，所以页面还不能直接' + escapeHtml(action) + '。' +
       '<div class="confirm-detail">请双击项目里的 <b>' + launcherName + '</b>，在弹窗中选择“重新启动”。只需做这一次；以后就能直接在页面里重启或停止。</div>',
     okText: '知道了',
@@ -294,26 +295,26 @@ function showConsoleActivationInfo(action) {
 }
 
 restartConsoleBtn.addEventListener('click', () => {
-  const northstarPid = Number(state.data && state.data.northstarPid);
+  const leodockPid = Number(state.data && state.data.leodockPid);
   if (state.restartingFrom) return;
-  if (!Number.isInteger(northstarPid) || northstarPid <= 0) {
+  if (!Number.isInteger(leodockPid) || leodockPid <= 0) {
     showConsoleActivationInfo('重启');
     return;
   }
   openConfirm({
-    title: '重启北辰本地中枢',
-    bodyHtml: '确定要重启北辰本地中枢吗？' +
+    title: '重启LeoDock',
+    bodyHtml: '确定要重启LeoDock吗？' +
       '<div class="confirm-detail">页面会自动重连；启动台里正在运行的应用不会停止。</div>',
     okText: '重新启动',
     tone: 'primary',
     onOk: async () => {
       suspendPortDiscovery();
-      state.restartingFrom = northstarPid;
-      banner.textContent = '北辰本地中枢正在重新启动，页面会自动恢复…';
+      state.restartingFrom = leodockPid;
+      banner.textContent = 'LeoDock正在重新启动，页面会自动恢复…';
       banner.classList.add('show');
       banner.setAttribute('aria-hidden', 'false');
       render();
-      const r = await act(post('/api/northstar/restart'));
+      const r = await act(post('/api/leodock/restart'));
       if (!r || r.ok === false) {
         clearTimeout(restartDeadlineTimer);
         restartDeadlineTimer = null;
@@ -326,7 +327,7 @@ restartConsoleBtn.addEventListener('click', () => {
       restartDeadlineTimer = setTimeout(() => {
         if (!state.restartingFrom) return;
         state.restartingFrom = null;
-        setConnected(false, '北辰本地中枢重启超时，请双击“' + launcherName + '”重新打开。');
+        setConnected(false, 'LeoDock重启超时，请双击“' + launcherName + '”重新打开。');
         render();
       }, 25000);
     },
@@ -334,31 +335,31 @@ restartConsoleBtn.addEventListener('click', () => {
 });
 
 stopConsoleBtn.addEventListener('click', () => {
-  const northstarPid = Number(state.data && state.data.northstarPid);
+  const leodockPid = Number(state.data && state.data.leodockPid);
   if (state.restartingFrom || state.stopping) return;
-  if (!Number.isInteger(northstarPid) || northstarPid <= 0) {
+  if (!Number.isInteger(leodockPid) || leodockPid <= 0) {
     showConsoleActivationInfo('停止');
     return;
   }
   openConfirm({
-    title: '停止北辰本地中枢',
-    bodyHtml: '确定要停止北辰本地中枢吗？' +
+    title: '停止LeoDock',
+    bodyHtml: '确定要停止LeoDock吗？' +
       '<div class="confirm-detail">当前页面会断开；启动台里已经运行的应用不会被停止。再次使用时，双击“' + launcherName + '”即可。</div>',
     okText: '停止运行',
     onOk: async () => {
       state.stopping = true;
-      banner.textContent = '北辰本地中枢正在停止…再次启动请双击“' + launcherName + '”。';
+      banner.textContent = 'LeoDock正在停止…再次启动请双击“' + launcherName + '”。';
       banner.classList.add('show');
       banner.setAttribute('aria-hidden', 'false');
       render();
-      const r = await act(post('/api/northstar/stop'));
+      const r = await act(post('/api/leodock/stop'));
       if (!r || r.ok === false) {
         state.stopping = false;
         setConnected(true);
         render();
         return;
       }
-      banner.textContent = '北辰本地中枢已停止。再次启动请双击“' + launcherName + '”。';
+      banner.textContent = 'LeoDock已停止。再次启动请双击“' + launcherName + '”。';
     },
   });
 });
@@ -447,8 +448,20 @@ function paletteActions() {
   items.push({
     icon: 'settings',
     title: '打开设置中心',
-    hint: '通知 · 外观 · 版本',
+    hint: '通知 · 外观',
     run: openSettingsCenter,
+  });
+  items.push({
+    icon: 'package',
+    title: '查看版本信息',
+    hint: '版本 · 目录 · GitHub',
+    run: openVersionInfo,
+  });
+  items.push({
+    icon: 'wrench',
+    title: '打开使用说明',
+    hint: '快速开始 · 快捷键 · 安全',
+    run: openUsageGuide,
   });
   const notifyOn = taskNotificationsEnabled();
   items.push({
@@ -460,8 +473,8 @@ function paletteActions() {
   });
   items.push({
     icon: 'terminal',
-    title: '北辰本地中枢日志',
-    hint: '系统 · data/logs/northstar.log',
+    title: 'LeoDock日志',
+    hint: '系统 · data/logs/leodock.log',
     run: openConsoleLog,
   });
   return items;
@@ -591,6 +604,8 @@ document.addEventListener('keydown', e => {
     if ($('#confirmMask').classList.contains('open')) closeConfirm();
     else if ($('#logsMask').classList.contains('open')) closeLogsCenter();
     else if ($('#settingsMask').classList.contains('open')) closeSettingsCenter();
+    else if ($('#versionMask').classList.contains('open')) closeVersionInfo();
+    else if ($('#guideMask').classList.contains('open')) closeUsageGuide();
     else if ($('#portDiagMask').classList.contains('open')) closePortDiagnostic();
     else if ($('#appDiagMask').classList.contains('open')) closeAppDiagnosis();
     else if ($('#appModalMask').classList.contains('open')) closeAppModal();

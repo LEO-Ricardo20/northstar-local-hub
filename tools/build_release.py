@@ -45,9 +45,9 @@ INCLUDE = (
     *REQUIRED_PROJECT_DOCS,
     "licenses",
     *REQUIRED_LICENSES,
-    "server.py",
-    "start-windows.cmd",
-    "start-windows-debug.cmd",
+    "leodock.py",
+    "start-leodock.cmd",
+    "start-leodock-debug.cmd",
     "static",
     "docs",
     "tests",
@@ -106,8 +106,8 @@ SENSITIVE_SUFFIXES = {
 }
 SAFE_ENV_SUFFIXES = {".example", ".sample", ".template"}
 EXECUTABLE_FILES = {
-    "start-windows.cmd",
-    "start-windows-debug.cmd",
+    "start-leodock.cmd",
+    "start-leodock-debug.cmd",
     "tools/build_release.py",
 }
 SEMVER_RE = re.compile(
@@ -337,7 +337,7 @@ def validate_payload(files: list[Path]) -> list[ReleaseEntry]:
 
 
 def archive_prefix(release_version: str) -> str:
-    return f"北辰本地中枢-{release_version}"
+    return f"LeoDock-{release_version}"
 
 
 def archive_mode(relative: Path) -> int:
@@ -498,7 +498,7 @@ def validate_output_dir(output_dir: Path) -> Path:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="构建并校验不含用户数据的北辰本地中枢发行包")
+    parser = argparse.ArgumentParser(description="构建并校验不含用户数据的LeoDock发行包")
     parser.add_argument("--dist", type=Path, default=DEFAULT_DIST, help="输出目录")
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--check-only", action="store_true", help="只验证发行来源")
@@ -516,7 +516,7 @@ def main() -> int:
         return 0
 
     output_dir = validate_output_dir(args.dist)
-    output = output_dir / f"northstar-{release_version}.zip"
+    output = output_dir / f"leodock-{release_version}.zip"
     if args.verify_only:
         verify_archive(output, entries, release_version)
         checksum = verify_checksum(output)

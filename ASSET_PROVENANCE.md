@@ -55,27 +55,27 @@
 ### 统一品牌标识与图标导出
 
 - 路径与 SHA-256：
-  - `static/assets/northstar-app-icon.png`：`464d5ed1ca52d33c64de4f004df126f280f27f20346620ef0b2e6cb4143ccec3`
-  - `static/assets/brand-mark.png`：`44644d14d7e3cf91808fa2f03e7735f7f4a9ab6c635f29eb98cf7ad4c85eaa0f`
-  - `static/assets/favicon-32.png`：`6c1c34a718d9f26737fc1edc2a1a1fd3838e66826e0a19284e116449f031abbb`
-  - `static/assets/favicon.ico`：`71b9aa89ea479762f7ed7c54a665c88ef7786089523417119292d446ea12648d`
+  - `static/assets/leodock-app-icon.png`：`49c9af98f3480ace498bdb3992835515c000a5990a7c687e16ef5b9310398f9b`
+  - `static/assets/leodock-brand-mark.png`：`60b29836b3e790dda4015621efa2c8bfc02e404a8549f6df7a694c0594613fc2`
+  - `static/assets/favicon-32.png`：`c5d3c4011928827c0e752cdbcaf4916a373fef7285d3bdca16d391f457b90baa`
+  - `static/assets/favicon.ico`：`88d276e465a25f163b8b74e08751ffdf24b2af9c77c99fac3a94d52dee331173`
 - 用途：Windows/Web 应用主图、浏览器 favicon 与网页顶栏品牌标识
-- 设计：琥珀色“长期服务”轨道与紫色“批处理任务”轨道汇聚到青柠色状态节点，呼应产品的两类本地操作与统一监测
-- 来源：由项目维护者在用户明确选定第三套方向后，于 2026-07-23 在 Codex 中使用 OpenAI Image Generation `image_gen` 工具生成；工具没有向本次会话暴露底层模型版本
-- 修改：主输出经透明通道整理、裁切和安全留白处理形成 `northstar-app-icon.png` 与 `brand-mark.png`；`tools/gen_brand_assets.py` 使用 Pillow Lanczos 缩放生成 Windows/Web 图标
-- 凭证：本地维护档案 `tmp/brand/`（不进入 Git/发行包）、`tools/gen_brand_assets.py`、本文件校验值和 Git 历史
-- 许可：作为项目定向生成的品牌素材使用；公开发行前仍需由发布负责人保存当次 OpenAI 适用条款、生成主体和可再分发结论
-- 状态：`REVIEW_REQUIRED`
-- 待办：将原始输出、当次条款快照和人工权利结论归档到发布记录；若未来需要可编辑矢量主源，应另行重绘并重新登记，不能把当前 PNG 描摹为“原始矢量”
+- 设计：冷白色 `L`、LEO 蓝 `D` 与暖金色定位点组成 `LD` 字母标识，应用图标使用深色玻璃底板与蓝金光影
+- 来源：项目维护者于 2026-08-17 在 Codex 中设计参数，并由仓库内 `tools/gen_brand_assets.py` 使用 Pillow 确定性绘制；未使用外部图片、AI 图像输出或第三方品牌素材
+- 修改：同一脚本直接生成透明品牌标识、应用图标、32px favicon 与多尺寸 Windows ICO；缩放使用 Pillow Lanczos
+- 凭证：`tools/gen_brand_assets.py`、本文件校验值和 Git 历史；任意环境可由锁定的 Pillow 版本复现
+- 许可：作为 LeoDock 项目自有程序化品牌素材，随项目依据根目录 MIT License 分发
+- 状态：`CLEARED`
+- 复核：Codex，2026-08-17
 
 ### 文档界面截图
 
 - 路径与 SHA-256：
-  - `docs/screenshots/ops-launchpad.jpg`：`c005ae8aaf8e934adefe4be06186e5e9fc0dda2882612dfe8e186cf60e401db0`
-  - `docs/screenshots/ops-services.jpg`：`17eb1cec8e760fe5fe640e8843999d36191e239ebc65cdbb94c030f867bb0e8e`
-- 用途：README 展示“北辰光幕”主题下的启动台与服务监控深色界面
-- 来源/生成：项目维护者于 2026-08-17 在本地启动北辰本地中枢，使用 Microsoft Edge 与 Playwright 以 `1920x1080` 视口捕获；画面完全由仓库内前端、品牌素材和本地合成演示数据生成
-- 数据清洗：截图捕获前在浏览器 DOM 中将端口、负载、进程、服务计数和工作目录替换为合成演示值，仅保留 `C:\Northstar\workspace\...` 等虚构路径；多余本机进程行被隐藏，不包含真实用户项目路径、账户、密钥、私人日志或可识别的本机运行记录
+  - `docs/screenshots/leodock-launchpad.jpg`：`7abe6bc1bd82b3fd57e67aef2bbb7f812177fd8d797f39695c794bfce8928a75`
+  - `docs/screenshots/leodock-services.jpg`：`e054bc8ed29551d550e7f1fa9fe1e61f40770bfbb2c80f640aa33f07dba5228d`
+- 用途：README 展示“LeoDock Glass”主题下的启动台与服务监控浅色玻璃界面
+- 来源/生成：项目维护者于 2026-08-17 在本地启动LeoDock，使用 Microsoft Edge 与 Playwright 以 `1920x1080` 视口捕获；画面完全由仓库内前端、品牌素材和本地合成演示数据生成
+- 数据清洗：截图捕获前在浏览器 DOM 中将端口、负载、进程、服务计数和工作目录替换为合成演示值，仅保留 `C:\LeoDock\workspace\...` 等虚构路径；多余本机进程行被隐藏，不包含真实用户项目路径、账户、密钥、私人日志或可识别的本机运行记录
 - 修改：浏览器原始 PNG 截图经 Pillow 转换为 RGB JPEG，质量 93、4:4:4 色度采样、渐进编码；未裁切、拼接或加入仓库外视觉素材
 - 凭证：本文件校验值、Git 历史及可由项目本地界面复现的截图流程；一次性浏览器捕获文件不进入发行包
 - 许可：截图中的项目自有界面与文档内容按根目录许可证发布；其中 Lucide 图标、Geist Mono 字体和品牌图片仍分别受本文件及 `THIRD_PARTY_NOTICES.md` 中对应条款约束

@@ -146,7 +146,7 @@ class FrontendAccessibilityContractTests(unittest.TestCase):
         )
 
     def test_ops_hero_english_companion_uses_single_light_layer(self):
-        ops = (ROOT / "static/themes/ops.css").read_text(encoding="utf-8")
+        ops = (ROOT / "static/themes/leodock-glass.css").read_text(encoding="utf-8")
         english = theme_block(ops, ".view-head h2::after")
 
         self.assertIn("content: 'LAUNCHPAD'", english)
@@ -161,7 +161,7 @@ class FrontendAccessibilityContractTests(unittest.TestCase):
         )
 
     def test_small_text_color_pairs_meet_wcag_aa(self):
-        ops = (ROOT / "static/themes/ops.css").read_text(encoding="utf-8")
+        ops = (ROOT / "static/themes/leodock-glass.css").read_text(encoding="utf-8")
         ops_light = theme_token_block(ops, "light")
         ops_dark = theme_token_block(ops, "dark")
 
@@ -303,16 +303,36 @@ class FrontendAccessibilityContractTests(unittest.TestCase):
         self.assertIn("icon('chevron-down', 16)", overlays)
         self.assertIn(".appearance-details[open] .appearance-chevron", css)
         self.assertIn("transform: rotate(180deg)", css)
-        self.assertIn('/assets/brand-mark.png', html)
+        self.assertIn('/assets/leodock-brand-mark.png', html)
         self.assertIn('/assets/favicon-32.png', html)
         for name in (
-            "brand-mark.png",
-            "northstar-app-icon.png",
+            "leodock-brand-mark.png",
+            "leodock-app-icon.png",
             "favicon-32.png",
             "favicon.ico",
         ):
             with self.subTest(name=name):
                 self.assertTrue((ROOT / "static/assets" / name).is_file())
+
+    def test_sidebar_exposes_version_and_usage_sections(self):
+        html = (ROOT / "static/index.html").read_text(encoding="utf-8")
+        app = (ROOT / "static/app.js").read_text(encoding="utf-8")
+        widgets = (ROOT / "static/js/widgets.js").read_text(encoding="utf-8")
+
+        for value in (
+            'id="rail-version"',
+            'id="rail-guide"',
+            'id="versionMask"',
+            'id="guideMask"',
+            'class="mobile-utility"',
+            'WINDOWS LOCAL SERVICE WORKSPACE',
+            'by LEO-Ricardo20',
+        ):
+            self.assertIn(value, html)
+        self.assertIn("run: openVersionInfo", app)
+        self.assertIn("run: openUsageGuide", app)
+        self.assertIn("export function openVersionInfo", widgets)
+        self.assertIn("export function openUsageGuide", widgets)
 
 
 if __name__ == "__main__":

@@ -1,16 +1,16 @@
-# 北辰本地中枢开发说明
+# LeoDock开发说明
 
 本项目是 Windows 11 专用的本地服务与批处理任务控制台：Python 3.12+ 标准库后端，原生 HTML/CSS/ES Modules 前端，无运行时第三方依赖。
 
 ## 核心结构
 
-- `server.py`：HTTP API、配置、Windows 进程/端口扫描、任务生命周期和安全校验。
+- `leodock.py`：HTTP API、配置、Windows 进程/端口扫描、任务生命周期和安全校验。
 - `static/`：无构建前端；`app.js` 为入口，`static/js/` 为功能模块。
-- `static/themes/ops.css`：唯一内置的“北辰光幕”主题；界面需要兼容浅色、深色和窄屏。
+- `static/themes/leodock-glass.css`：唯一内置的“LeoDock Glass”主题；界面需要兼容浅色、深色和窄屏。
 - `tests/`：后端、Windows、前端契约、加固和发行测试。
 - `tools/check_project.py`：权威项目检查。
 - `tools/build_release.py`：可复现发行 ZIP 和发布边界审计。
-- `start-windows.cmd` / `start-windows-debug.cmd`：Windows 启动入口。
+- `start-leodock.cmd` / `start-leodock-debug.cmd`：Windows 启动入口。
 
 ## 平台约束
 
@@ -25,10 +25,10 @@
 ## 运行与数据
 
 ```powershell
-py -3 server.py
+py -3 leodock.py
 ```
 
-HTTP 只绑定 `127.0.0.1`，从 9600 到 9609 选择端口。默认数据位于 `%LOCALAPPDATA%\北辰本地中枢`，日志在其 `logs` 子目录。`CONSOLE_DATA_DIR` 和 `CONSOLE_LOG_DIR` 可覆盖为专用绝对路径。
+HTTP 只绑定 `127.0.0.1`，从 9600 到 9609 选择端口。默认数据位于 `%LOCALAPPDATA%\LeoDock`，日志在其 `logs` 子目录。`LEODOCK_DATA_DIR` 和 `LEODOCK_LOG_DIR` 可覆盖为专用绝对路径。
 
 ## 修改要求
 

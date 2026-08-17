@@ -16,7 +16,7 @@ let feedSeq = 0;
 let feedEvents = [];
 let prevSnap = null;              // 上一份用于差异对比的快照
 
-/* 断线、页面转入后台或北辰本地中枢重启后由 app.js 调用：
+/* 断线、页面转入后台或LeoDock重启后由 app.js 调用：
    丢弃旧基线，下一份快照只重建基线，避免把断档期积压的变化
    一次性当作“刚刚发生”的事件灌进实时动态/告警。 */
 export function resetFeedBaseline() {
@@ -51,6 +51,8 @@ export function initWidgets() {
     else if (action === 'refresh' && window.__poll) window.__poll();
     else if (action === 'logs') openLogsCenter();
     else if (action === 'settings') openSettingsCenter();
+    else if (action === 'version') openVersionInfo();
+    else if (action === 'guide') openUsageGuide();
     else if (action === 'batch-stop') batchStopApps();
   });
   /* 导航轨动作按钮（非视图切换） */
@@ -58,10 +60,14 @@ export function initWidgets() {
     btn.addEventListener('click', () => {
       if (btn.dataset.action === 'logs') openLogsCenter();
       else if (btn.dataset.action === 'settings') openSettingsCenter();
+      else if (btn.dataset.action === 'version') openVersionInfo();
+      else if (btn.dataset.action === 'guide') openUsageGuide();
     });
   });
   setChildren($('#railIconLogs'), icon('file-text', 19));
   setChildren($('#railIconSettings'), icon('settings', 19));
+  setChildren($('#railIconVersion'), icon('package', 19));
+  setChildren($('#railIconGuide'), icon('wrench', 19));
   $('#logsMaskClose').addEventListener('click', closeLogsCenter);
   $('#logsMask').addEventListener('mousedown', e => {
     if (e.target === $('#logsMask')) closeLogsCenter();
@@ -69,6 +75,14 @@ export function initWidgets() {
   $('#settingsMaskClose').addEventListener('click', closeSettingsCenter);
   $('#settingsMask').addEventListener('mousedown', e => {
     if (e.target === $('#settingsMask')) closeSettingsCenter();
+  });
+  $('#versionMaskClose').addEventListener('click', closeVersionInfo);
+  $('#versionMask').addEventListener('mousedown', e => {
+    if (e.target === $('#versionMask')) closeVersionInfo();
+  });
+  $('#guideMaskClose').addEventListener('click', closeUsageGuide);
+  $('#guideMask').addEventListener('mousedown', e => {
+    if (e.target === $('#guideMask')) closeUsageGuide();
   });
   $('#setNotify').addEventListener('click', () => {
     toggleTaskNotifications();
@@ -78,8 +92,8 @@ export function initWidgets() {
     const tab = e.target.closest('.mini-tab');
     if (!tab) return;
     const mode = tab.dataset.appearance;
-    if (mode === 'auto') localStorage.removeItem('northstar-theme');
-    else localStorage.setItem('northstar-theme', mode);
+    if (mode === 'auto') localStorage.removeItem('leodock-theme');
+    else localStorage.setItem('leodock-theme', mode);
     applyTheme();
     syncSettings();
   });
@@ -188,7 +202,7 @@ function diffSnapshot(prev, next) {
     }
   }
   if (!prev.degraded && next.degraded) {
-    pushEvent('error', '北辰本地中枢进入降级模式', '部分数据可能不完整');
+    pushEvent('error', 'LeoDock进入降级模式', '部分数据可能不完整');
   }
 }
 
@@ -312,7 +326,7 @@ function renderTips(data) {
     text = '检测到 ' + conflicts + ' 个端口冲突，建议尽快处理以避免服务异常。';
     actionable = true;
   } else if (data.degraded) {
-    text = '当前处于降级模式，部分组件数据可能不完整；可尝试重启北辰本地中枢恢复。';
+    text = '当前处于降级模式，部分组件数据可能不完整；可尝试重启LeoDock恢复。';
   } else {
     const shortcut = /Mac|iPhone|iPad|iPod/i.test(navigator.platform || '')
       ? '⌘K' : 'Ctrl+K';
@@ -337,7 +351,7 @@ export function renderWidgets(data) {
 }
 
 /* ============================================================
-   日志中心（聚合弹层，⌘J）：所有应用与北辰本地中枢日志的目录页
+   日志中心（聚合弹层，⌘J）：所有应用与LeoDock日志的目录页
    ============================================================ */
 const logsMask = $('#logsMask'), logsList = $('#logsList');
 
@@ -377,16 +391,16 @@ function renderLogsList() {
   const apps = (state.data && state.data.apps) || [];
   const sorted = apps.slice().sort((a, b) => (!!b.running) - (!!a.running));
   for (const app of sorted) logsList.appendChild(logsRow(app));
-  /* 北辰本地中枢自身日志固定在最后 */
+  /* LeoDock 自身日志固定在最后 */
   const row = el('button', 'logs-item');
   row.type = 'button';
   const box = el('span', 'logs-ic');
   box.appendChild(icon('terminal', 14));
   const main = el('span', 'logs-main');
   const name = el('span', 'logs-name');
-  name.textContent = '北辰本地中枢日志';
+  name.textContent = 'LeoDock日志';
   const sub = el('span', 'logs-sub');
-  sub.textContent = '系统 · northstar.log';
+  sub.textContent = '系统 · leodock.log';
   main.append(name, sub);
   row.append(box, main, icon('chevron-right', 14));
   row.addEventListener('click', () => {
@@ -396,7 +410,7 @@ function renderLogsList() {
   logsList.appendChild(row);
   if (!apps.length) {
     const empty = el('div', 'logs-empty');
-    empty.textContent = '启动台还没有应用；上方是北辰本地中枢自身日志';
+    empty.textContent = '启动台还没有应用；上方是 LeoDock 自身日志';
     logsList.prepend(empty);
   }
 }
@@ -417,15 +431,12 @@ function syncSettings() {
   const sw = $('#setNotify');
   sw.classList.toggle('on', on);
   sw.setAttribute('aria-checked', String(on));
-  const stored = localStorage.getItem('northstar-theme');
+  const stored = localStorage.getItem('leodock-theme');
   const mode = stored === 'dark' ? 'dark' : stored === 'light' ? 'light' : 'auto';
   for (const tab of $('#setAppearance').querySelectorAll('.mini-tab')) {
     tab.classList.toggle('active', tab.dataset.appearance === mode);
   }
   const d = state.data || {};
-  setText($('#setVersion'), d.version ? 'v' + d.version : '—');
-  setText($('#setPort'), d.northstarPort ? ':' + d.northstarPort : '—');
-  setText($('#setCwd'), d.northstarCwd || '—');
 }
 
 export function openSettingsCenter() {
@@ -433,6 +444,31 @@ export function openSettingsCenter() {
   openLayer(settingsMask, $('#settingsMaskClose'));
 }
 export function closeSettingsCenter() { closeLayer(settingsMask); }
+
+/* ============================================================
+   版本信息与使用说明
+   ============================================================ */
+const versionMask = $('#versionMask');
+const guideMask = $('#guideMask');
+
+function syncVersionInfo() {
+  const d = state.data || {};
+  setText($('#infoVersion'), d.version ? 'v' + d.version : '—');
+  setText($('#infoSchema'), d.schemaVersion != null ? 'v' + d.schemaVersion : '—');
+  setText($('#infoPort'), d.leodockPort ? ':' + d.leodockPort : '—');
+  setText($('#infoCwd'), d.leodockCwd || '—');
+}
+
+export function openVersionInfo() {
+  syncVersionInfo();
+  openLayer(versionMask, $('#versionMaskClose'));
+}
+export function closeVersionInfo() { closeLayer(versionMask); }
+
+export function openUsageGuide() {
+  openLayer(guideMask, $('#guideMaskClose'));
+}
+export function closeUsageGuide() { closeLayer(guideMask); }
 
 /* ============================================================
    批量停止服务：确认后逐个走安全停止，绝不按端口结束进程

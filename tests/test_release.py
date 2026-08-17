@@ -58,9 +58,9 @@ class ReleaseFixtureTests(unittest.TestCase):
 
     @unittest.skipIf(os.name == "nt", "Windows symlinks require developer mode")
     def test_symlinked_required_source_is_rejected(self):
-        target = self.write("target/server.py")
-        (self.root / "server.py").symlink_to(target)
-        with mock.patch.object(release, "INCLUDE", ("server.py",)):
+        target = self.write("target/leodock.py")
+        (self.root / "leodock.py").symlink_to(target)
+        with mock.patch.object(release, "INCLUDE", ("leodock.py",)):
             with self.assertRaisesRegex(SystemExit, "符号链接"):
                 release.iter_release_files()
 
@@ -95,8 +95,8 @@ class ReleaseFixtureTests(unittest.TestCase):
             self.entries(source)
 
     def test_archive_is_reproducible_and_metadata_is_normalized(self):
-        regular = self.write("server.py", b"print('ok')\n")
-        executable = self.write("start-windows.cmd", b"@echo off\nexit /b 0\n")
+        regular = self.write("leodock.py", b"print('ok')\n")
+        executable = self.write("start-leodock.cmd", b"@echo off\nexit /b 0\n")
         regular.chmod(0o600)
         executable.chmod(0o700)
         first = self.root / "dist" / "first.zip"
@@ -116,8 +116,8 @@ class ReleaseFixtureTests(unittest.TestCase):
             self.assertEqual(stat.S_IMODE(second.stat().st_mode), 0o644)
         with zipfile.ZipFile(second) as archive:
             infos = {info.filename: info for info in archive.infolist()}
-        regular_info = infos["北辰本地中枢-1.2.3/server.py"]
-        executable_info = infos["北辰本地中枢-1.2.3/start-windows.cmd"]
+        regular_info = infos["LeoDock-1.2.3/leodock.py"]
+        executable_info = infos["LeoDock-1.2.3/start-leodock.cmd"]
         self.assertEqual(regular_info.compress_type, zipfile.ZIP_STORED)
         self.assertEqual(regular_info.date_time, (2024, 1, 1, 0, 0, 0))
         self.assertEqual(
@@ -131,9 +131,9 @@ class ReleaseFixtureTests(unittest.TestCase):
             )
 
     def test_archive_and_checksum_verification_detect_tampering(self):
-        source = self.write("server.py", b"original")
+        source = self.write("leodock.py", b"original")
         entries = self.entries(source)
-        output = self.root / "dist" / "northstar-1.0.0.zip"
+        output = self.root / "dist" / "leodock-1.0.0.zip"
         release.write_archive(output, entries, "1.0.0")
         release.write_checksum(output)
         release.verify_archive(output, entries, "1.0.0")
@@ -178,8 +178,8 @@ class ProjectReleaseManifestTests(unittest.TestCase):
         for required in release.REQUIRED_PROJECT_DOCS:
             with self.subTest(required=required):
                 self.assertIn(required, names)
-        self.assertIn("docs/screenshots/ops-launchpad.jpg", names)
-        self.assertIn("docs/screenshots/ops-services.jpg", names)
+        self.assertIn("docs/screenshots/leodock-launchpad.jpg", names)
+        self.assertIn("docs/screenshots/leodock-services.jpg", names)
 
     def test_required_third_party_licenses_are_in_payload(self):
         names = {

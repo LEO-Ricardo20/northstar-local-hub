@@ -147,7 +147,7 @@ async function req(method, path, body, timeoutMs = REQUEST_TIMEOUT_MS) {
     if (r.status === 204) { mutationEpoch += 1; return { ok: true }; }
     const type = r.headers.get('content-type') || '';
     const fallbackError = r.status === 401 || r.status === 403
-      ? '访问被拒绝，请从北辰本地中枢页面重试'
+      ? '访问被拒绝，请从LeoDock页面重试'
       : 'HTTP ' + r.status;
     const data = type.includes('application/json')
       ? await r.json()
@@ -279,7 +279,7 @@ document.addEventListener('animationend', e => {
 
 /* ---------------- 全局状态 ---------------- */
 export const state = {
-  view: localStorage.getItem('northstar-view') === 'services' ? 'services' : 'launchpad',
+  view: localStorage.getItem('leodock-view') === 'services' ? 'services' : 'launchpad',
   data: null,
   lastUpdate: null,
   restartingFrom: null,
@@ -305,7 +305,7 @@ export function taskExitStatus(lastExit) {
   return 'failed';
 }
 /* ---------------- 任务完成系统通知 ---------------- */
-const TASK_NOTIFY_KEY = 'northstar-task-notify';
+const TASK_NOTIFY_KEY = 'leodock-task-notify';
 export function taskNotificationsEnabled() {
   if (typeof Notification === 'undefined') return false;
   return localStorage.getItem(TASK_NOTIFY_KEY) === '1'
@@ -340,7 +340,7 @@ export async function toggleTaskNotifications() {
 function systemNotify(title, body) {
   if (!document.hidden || !taskNotificationsEnabled()) return;
   try {
-    const n = new Notification(title, { body, tag: 'northstar-task' });
+    const n = new Notification(title, { body, tag: 'leodock-task' });
     if (n) setTimeout(() => n.close(), 10000);
   } catch (e) {
     /* 某些环境构造 Notification 会抛异常；通知是锦上添花，静默失败。 */
@@ -383,7 +383,7 @@ export function notifyTaskCompletions(previousData, nextData) {
 /* ---------------- 深浅色 ---------------- */
 const mq = window.matchMedia('(prefers-color-scheme: dark)');
 function currentTheme() {
-  return localStorage.getItem('northstar-theme') || (mq.matches ? 'dark' : 'light');
+  return localStorage.getItem('leodock-theme') || (mq.matches ? 'dark' : 'light');
 }
 export function applyTheme() {
   const themeBtn = $('#themeBtn');
@@ -395,11 +395,11 @@ export function applyTheme() {
 }
 export function initThemeToggle() {
   $('#themeBtn').addEventListener('click', () => {
-    localStorage.setItem('northstar-theme', currentTheme() === 'dark' ? 'light' : 'dark');
+    localStorage.setItem('leodock-theme', currentTheme() === 'dark' ? 'light' : 'dark');
     applyTheme();
   });
   mq.addEventListener('change', () => {
-    if (!localStorage.getItem('northstar-theme')) applyTheme();
+    if (!localStorage.getItem('leodock-theme')) applyTheme();
   });
 }
 
@@ -418,18 +418,18 @@ export function reconcilePendingUiTheme(data) {
 }
 export function currentUiTheme() {
   const candidate = (state.data && state.data.uiTheme)
-    || localStorage.getItem('northstar-ui-theme') || 'ops';
+    || localStorage.getItem('leodock-ui-theme') || 'leodock-glass';
   const themes = registeredThemes();
   if (themes.length) {
     if (themes.some(theme => theme.id === candidate)) return candidate;
-    return (themes.find(theme => theme.id === 'ops') || themes[0]).id;
+    return (themes.find(theme => theme.id === 'leodock-glass') || themes[0]).id;
   }
-  return /^[a-z0-9][a-z0-9_-]{0,63}$/i.test(candidate) ? candidate : 'ops';
+  return /^[a-z0-9][a-z0-9_-]{0,63}$/i.test(candidate) ? candidate : 'leodock-glass';
 }
 
 function linkedThemeName(link) {
   const match = (link.getAttribute('href') || '').match(/\/themes\/([^/?]+)\.css/);
-  return match ? decodeURIComponent(match[1]) : 'ops';
+  return match ? decodeURIComponent(match[1]) : 'leodock-glass';
 }
 
 function loadThemeCss(name) {
@@ -460,7 +460,7 @@ function loadThemeCss(name) {
 
 function commitUiTheme(name) {
   document.documentElement.dataset.uiTheme = name;
-  localStorage.setItem('northstar-ui-theme', name);
+  localStorage.setItem('leodock-ui-theme', name);
   if (state.data) state.data.uiTheme = name;
 }
 
@@ -488,7 +488,7 @@ export function applyUiTheme(name, persist = false) {
     const themeCss = $('#themeCss');
     const previous = document.documentElement.dataset.uiTheme || linkedThemeName(themeCss);
     const previousHref = themeCss.getAttribute('href') || ('/themes/' + previous + '.css');
-    const previousStored = localStorage.getItem('northstar-ui-theme');
+    const previousStored = localStorage.getItem('leodock-ui-theme');
     const previousState = state.data && state.data.uiTheme;
     try {
       await loadThemeCss(name);
@@ -504,8 +504,8 @@ export function applyUiTheme(name, persist = false) {
       if (persist && pendingPersistedUiTheme === name) pendingPersistedUiTheme = null;
       themeCss.href = previousHref;
       document.documentElement.dataset.uiTheme = previous;
-      if (previousStored == null) localStorage.removeItem('northstar-ui-theme');
-      else localStorage.setItem('northstar-ui-theme', previousStored);
+      if (previousStored == null) localStorage.removeItem('leodock-ui-theme');
+      else localStorage.setItem('leodock-ui-theme', previousStored);
       if (state.data) state.data.uiTheme = previousState || previous;
       /* 非持久化调用（每轮轮询的同步渲染）失败时静默回滚，
          避免 themes 目录缺失等持续故障下每 2 秒弹一次失败提示。 */

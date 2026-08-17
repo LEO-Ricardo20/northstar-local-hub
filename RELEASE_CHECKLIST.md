@@ -10,9 +10,9 @@
 ## 全新环境
 
 - [ ] 在 Windows 11 22H2 或更高版本上测试。
-- [ ] 使用 Python 3.12 测试 `start-windows.cmd`。
-- [ ] 使用 `start-windows-debug.cmd` 验证错误输出。
-- [ ] 默认数据目录不存在时能创建 `%LOCALAPPDATA%\北辰本地中枢`。
+- [ ] 使用 Python 3.12 测试 `start-leodock.cmd`。
+- [ ] 使用 `start-leodock-debug.cmd` 验证错误输出。
+- [ ] 默认数据目录不存在时能创建 `%LOCALAPPDATA%\LeoDock`。
 - [ ] 9600 被占用时能回退到 9601–9609。
 
 ## 功能验收

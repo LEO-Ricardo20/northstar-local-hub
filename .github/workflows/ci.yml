@@ -54,10 +54,10 @@ jobs:
           python tools/build_release.py --dist dist
           python tools/build_release.py --dist dist --verify-only
           $archive = Get-ChildItem dist\*.zip | Select-Object -First 1
-          Copy-Item $archive.FullName "$env:RUNNER_TEMP\northstar-first.zip"
+          Copy-Item $archive.FullName "$env:RUNNER_TEMP\leodock-first.zip"
           python tools/build_release.py --dist dist
           $second = Get-ChildItem dist\*.zip | Select-Object -First 1
-          $firstHash = (Get-FileHash "$env:RUNNER_TEMP\northstar-first.zip").Hash
+          $firstHash = (Get-FileHash "$env:RUNNER_TEMP\leodock-first.zip").Hash
           $secondHash = (Get-FileHash $second.FullName).Hash
           if ($firstHash -ne $secondHash) { throw "Release archive is not reproducible" }
           python tools/build_release.py --dist dist --verify-only

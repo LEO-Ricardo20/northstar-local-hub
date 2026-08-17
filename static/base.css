@@ -265,7 +265,7 @@
 
   .btn,
   .nav-btn,
-  .northstar-control,
+  .leodock-control,
   .cmdk-trigger,
   .kind-btn,
   .hero-add {
@@ -443,8 +443,8 @@
 
 @media (max-width: 480px) {
   .topbar-inner { padding-inline: 12px; }
-  .northstar-action-label { display: none; }
-  .northstar-control {
+  .leodock-action-label { display: none; }
+  .leodock-control {
     width: 40px;
     padding-inline: 0;
     justify-content: center;
@@ -718,6 +718,105 @@
   max-width: 260px;
 }
 
+/* ---------- 版本信息 / 使用说明 ---------- */
+.modal-info { width: 520px; }
+.modal-guide { width: 660px; }
+.product-signature {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 2px 0 18px;
+  border-bottom: 1px solid var(--line);
+}
+.product-signature img {
+  width: 58px;
+  height: 58px;
+  flex: none;
+  box-sizing: border-box;
+  padding: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 13px;
+  background: linear-gradient(145deg, #111a29, #080c13);
+  object-fit: contain;
+  filter: drop-shadow(0 12px 24px color-mix(in srgb, var(--accent) 22%, transparent));
+}
+.product-signature strong,
+.product-signature span,
+.product-signature small { display: block; }
+.product-signature strong {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 680;
+  letter-spacing: 0;
+}
+.product-signature span {
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--accent);
+}
+.product-signature small {
+  margin-top: 6px;
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+.info-list { margin: 14px 0 0; }
+.info-list > div {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+.info-list dt { font-size: 11px; color: var(--ink-3); }
+.info-list dd { margin: 0; text-align: right; font-size: 11px; color: var(--ink-2); }
+.info-path { overflow-wrap: anywhere; }
+.info-actions { justify-content: space-between; }
+.info-actions .btn { min-width: 92px; text-align: center; }
+.guide-intro {
+  margin: -4px 0 16px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+.guide-steps { margin: 0; padding: 0; list-style: none; }
+.guide-steps li {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  padding: 13px 0;
+  border-top: 1px solid var(--line);
+}
+.guide-index { padding-top: 2px; color: var(--accent); font-size: 10px; font-weight: 700; }
+.guide-steps strong { display: block; font-size: 12.5px; }
+.guide-steps p { margin: 4px 0 0; color: var(--ink-3); font-size: 11px; line-height: 1.6; }
+.guide-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 15px 0;
+  border-top: 1px solid var(--line);
+}
+.guide-shortcuts > div { min-width: 0; }
+.guide-shortcuts kbd { display: inline-block; margin-bottom: 6px; }
+.guide-shortcuts span { display: block; color: var(--ink-3); font-size: 10.5px; line-height: 1.45; }
+.guide-note {
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 2px solid var(--amber);
+  background: color-mix(in srgb, var(--amber) 8%, transparent);
+  color: var(--ink-2);
+  font-size: 10.5px;
+  line-height: 1.65;
+}
+.guide-note strong { color: var(--ink); }
+
+@media (max-width: 620px) {
+  .guide-shortcuts { grid-template-columns: 1fr; gap: 9px; }
+  .info-list > div { grid-template-columns: 78px minmax(0, 1fr); gap: 10px; }
+  .product-signature img { width: 50px; height: 50px; }
+}
+
 .tips-text { margin: 0; font-size: 12px; line-height: 1.65; color: var(--ink-2); }
 .tips-ic { display: inline-flex; color: var(--amber); }
 .tips-action { margin-top: 10px; }
@@ -855,7 +954,7 @@
 /* ============================================================
    兼容视觉层 — 低优先级保留旧选择器覆盖
    该层用于维持既有组件尺寸与断点兼容；当前产品视觉由其后的
-   “北辰光幕”无层样式统一覆盖。
+   “LeoDock Glass”无层样式统一覆盖。
    ============================================================ */
 
 body {
@@ -1034,7 +1133,7 @@ body {
   color: var(--ink-4);
 }
 .side-controls { gap: 6px; }
-.northstar-control,
+.leodock-control,
 .icon-btn {
   height: 34px;
   border-color: var(--line-2);
@@ -1042,7 +1141,7 @@ body {
   background: transparent;
 }
 .icon-btn { width: 34px; }
-.northstar-control:hover:not(:disabled),
+.leodock-control:hover:not(:disabled),
 .icon-btn:hover {
   background: var(--card-2);
   border-color: var(--ink);
@@ -1487,7 +1586,7 @@ body {
 @media (max-width: 620px) {
   .brand-text h1 { font-size: 17px; }
   .brand-text p { display: none; }
-  .northstar-control { padding-inline: 9px; }
+  .leodock-control { padding-inline: 9px; }
   .ov-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ov { min-height: 112px; padding: 16px 13px; }
   .ov:nth-child(2n) { border-right: 0; }
@@ -1498,13 +1597,13 @@ body {
 }
 
 /* ============================================================
-   北辰光幕 — Northstar Glass Console
+   LeoDock Glass — LeoDock Glass Console
    设计取样：深黑蓝空间、流体折射光、分级毛玻璃、细亮边与
    局部蓝色辉光。营销页式氛围被约束在背景和顶层容器中，
    业务卡片、表格与状态控件仍以高密度扫描和稳定操作为优先。
    ============================================================ */
 
-@keyframes northstar-light-drift {
+@keyframes leodock-light-drift {
   0% { transform: translate3d(-3%, -2%, 0) rotate(-5deg) scale(1.04); opacity: 0.72; }
   50% { transform: translate3d(2%, 1%, 0) rotate(-2deg) scale(1.08); opacity: 0.92; }
   100% { transform: translate3d(4%, -1%, 0) rotate(1deg) scale(1.03); opacity: 0.76; }
@@ -1540,7 +1639,7 @@ body::before {
     );
   filter: blur(58px) saturate(118%);
   transform-origin: 50% 30%;
-  animation: northstar-light-drift 24s ease-in-out infinite alternate;
+  animation: leodock-light-drift 24s ease-in-out infinite alternate;
 }
 
 body::after {
@@ -1616,14 +1715,14 @@ body::after {
 }
 
 .rail-nav::before {
-  content: 'NORTH / 01';
+  content: 'LEO / LOCAL';
   display: block;
   padding: 5px 0 10px;
   font-family: var(--font-mono);
   font-size: 7px;
   font-weight: 700;
   line-height: 1;
-  letter-spacing: 0.14em;
+  letter-spacing: 0;
   color: var(--ink-4);
   text-align: center;
 }
@@ -1724,8 +1823,11 @@ body::after {
   height: 36px;
   border: 1px solid var(--glass-border);
   border-radius: 11px;
-  background: var(--glass-soft);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  background: linear-gradient(145deg, #111a29, #080c13);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 8px 20px color-mix(in srgb, var(--accent) 16%, transparent),
+    0 0 18px color-mix(in srgb, var(--amber) 10%, transparent);
 }
 
 .brand-icon img { padding: 4px; }
@@ -1749,7 +1851,7 @@ body::after {
   font-size: 7px;
   font-weight: 700;
   line-height: 1.35;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   color: var(--accent);
 }
 
@@ -1796,10 +1898,11 @@ body::after {
 }
 
 .topbar-right { gap: 10px; }
+.mobile-utility { display: none; }
 .side-stats { color: var(--ink-4); font-size: 8.5px; }
 .side-controls { gap: 6px; }
 
-.northstar-control,
+.leodock-control,
 .icon-btn {
   height: 34px;
   border: 1px solid var(--line-2);
@@ -1810,7 +1913,7 @@ body::after {
 
 .icon-btn { width: 34px; }
 
-.northstar-control:hover:not(:disabled),
+.leodock-control:hover:not(:disabled),
 .icon-btn:hover {
   color: var(--ink);
   border-color: color-mix(in srgb, var(--accent) 45%, var(--line-2));
@@ -2542,6 +2645,31 @@ kbd {
     width: 100%;
     border-color: var(--line);
   }
+  .mobile-utility {
+    order: 4;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .mobile-utility button {
+    min-width: 0;
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 6px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--glass-soft) 78%, transparent);
+    color: var(--ink-3);
+    font-size: 10.5px;
+    font-weight: 650;
+  }
+  .mobile-utility button:hover { color: var(--ink); border-color: var(--line-2); }
+  .mobile-utility button span:first-child { display: inline-flex; }
+  .mobile-utility svg { width: 13px; height: 13px; }
   .nav-btn { min-height: 36px; }
   .main-inner { padding: 0 16px 64px; }
   .view-head {
@@ -2558,7 +2686,7 @@ kbd {
 @media (max-width: 620px) {
   .brand-text h1 { font-size: 16px; }
   .brand-text p { display: none; }
-  .northstar-control { padding-inline: 9px; }
+  .leodock-control { padding-inline: 9px; }
   .view-head h2 { font-size: 30px; }
   .vh-sub { font-size: 12px; }
   .ov-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }

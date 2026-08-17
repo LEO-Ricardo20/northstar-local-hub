@@ -464,7 +464,7 @@ function confirmRestartApp(app) {
   openConfirm({
     title: '重启应用',
     bodyHtml: '确定要重启 <b>' + escapeHtml(app.name || '') + '</b> 吗？' +
-      '<div class="confirm-detail">北辰本地中枢会等待旧进程完全退出，然后使用当前配置重新启动。</div>',
+      '<div class="confirm-detail">LeoDock会等待旧进程完全退出，然后使用当前配置重新启动。</div>',
     okText: '重新启动',
     onOk: async () => {
       const r = await act(post('/api/apps/' + app.id + '/restart'));
@@ -532,8 +532,8 @@ function openPortDiagnostic(app) {
     diagNote.textContent = '同一端口还被“' +
       (app.portConflictApps || []).join('、') +
       '”配置。端口同一时间只能由一个服务监听，请修改当前卡片或另一张卡片。';
-  } else if (owner && owner.pid === (state.data && state.data.northstarPid)) {
-    diagNote.textContent = '该端口属于当前北辰本地中枢。你可以修改当前卡片端口，不能在这里结束北辰本地中枢。';
+  } else if (owner && owner.pid === (state.data && state.data.leodockPid)) {
+    diagNote.textContent = '该端口属于当前LeoDock。你可以修改当前卡片端口，不能在这里结束LeoDock。';
   } else if (owner && owner.currentUser) {
     const ownerLabel = owner.project || owner.appName || owner.name || ('PID ' + owner.pid);
     diagNote.textContent = owner.appId
@@ -545,16 +545,16 @@ function openPortDiagnostic(app) {
         '可以认领为本卡片；若要现在启动当前项目，' +
         '请等待它停止、修改当前项目端口，或确认后结束该进程。';
   } else if (owner) {
-    diagNote.textContent = '该进程不属于当前用户。你可以打开它或修改当前卡片端口，北辰本地中枢不会结束它。';
+    diagNote.textContent = '该进程不属于当前用户。你可以打开它或修改当前卡片端口，LeoDock不会结束它。';
   } else {
     diagNote.textContent = '暂时无法读取占用者详情，可稍后刷新重试。';
   }
   diagOpen.hidden = !(occupied && owner && app.port);
   diagAttach.hidden = !(occupied && owner && owner.currentUser && !owner.appId
-    && owner.pid !== (state.data && state.data.northstarPid));
+    && owner.pid !== (state.data && state.data.leodockPid));
   diagEdit.hidden = !(conflict || occupied);
   diagKill.hidden = !(occupied && owner && owner.currentUser
-    && owner.pid !== (state.data && state.data.northstarPid));
+    && owner.pid !== (state.data && state.data.leodockPid));
   diagKill.textContent = owner && owner.appId ? '停止占用应用' : '结束占用进程';
   openLayer(portDiagMask, diagClose);
 }

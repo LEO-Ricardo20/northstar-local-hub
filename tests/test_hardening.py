@@ -10,7 +10,7 @@ import time
 import unittest
 from unittest import mock
 
-import server
+import leodock
 
 
 class HttpHarness:
@@ -18,11 +18,11 @@ class HttpHarness:
         self.tmp = tempfile.TemporaryDirectory()
         path = os.path.join(self.tmp.name, "config.json")
         self.config_path = path
-        self.cfg = server.Config(path)
-        self.httpd = server.ConsoleServer(
-            (server.HOST, 0), server.Handler, self.cfg, 0)
+        self.cfg = leodock.Config(path)
+        self.httpd = leodock.LeoDockServer(
+            (leodock.HOST, 0), leodock.Handler, self.cfg, 0)
         self.port = self.httpd.server_address[1]
-        server.invalidate_state_cache()  # 每个用例从空缓存开始，避免跨用例污染
+        leodock.invalidate_state_cache()  # 每个用例从空缓存开始，避免跨用例污染
         self.thread = threading.Thread(
             target=self.httpd.serve_forever, daemon=True)
         self.thread.start()
@@ -34,7 +34,7 @@ class HttpHarness:
         self.tmp.cleanup()
 
     def request(self, method, path, body=None, headers=None):
-        conn = http.client.HTTPConnection(server.HOST, self.port, timeout=4)
+        conn = http.client.HTTPConnection(leodock.HOST, self.port, timeout=4)
         request_headers = dict(headers or {})
         if body is not None and not isinstance(body, (bytes, bytearray)):
             body = body.encode("utf-8")
@@ -92,28 +92,28 @@ class HttpSecurityTests(unittest.TestCase):
         headers = self._browser_headers(cookie, "https://attacker.example")
         headers["Sec-Fetch-Site"] = "cross-site"
         status, body, _ = self.h.request(
-            "POST", "/api/ui/theme", json.dumps({"theme": "ops"}), headers)
+            "POST", "/api/ui/theme", json.dumps({"theme": "leodock-glass"}), headers)
         self.assertEqual(status, 403)
         self.assertFalse(body["ok"])
-        self.assertEqual(self.h.cfg.snapshot()["uiTheme"], "ops")
+        self.assertEqual(self.h.cfg.snapshot()["uiTheme"], "leodock-glass")
 
     def test_same_origin_browser_write_requires_valid_http_only_session(self):
         status, _, _ = self.h.request(
-            "POST", "/api/ui/theme", json.dumps({"theme": "ops"}),
+            "POST", "/api/ui/theme", json.dumps({"theme": "leodock-glass"}),
             self._browser_headers())
         self.assertEqual(status, 403)
 
         cookie = self._session_cookie()
         status, body, _ = self.h.request(
-            "POST", "/api/ui/theme", json.dumps({"theme": "ops"}),
+            "POST", "/api/ui/theme", json.dumps({"theme": "leodock-glass"}),
             self._browser_headers(cookie))
         self.assertEqual(status, 200)
         self.assertTrue(body["ok"])
-        self.assertEqual(self.h.cfg.snapshot()["uiTheme"], "ops")
+        self.assertEqual(self.h.cfg.snapshot()["uiTheme"], "leodock-glass")
 
     def test_simple_form_post_cannot_reach_bodyless_control_action(self):
         status, body, _ = self.h.request(
-            "POST", "/api/northstar/stop", "x=1",
+            "POST", "/api/leodock/stop", "x=1",
             {"Content-Type": "application/x-www-form-urlencoded"})
         self.assertEqual(status, 415)
         self.assertFalse(body["ok"])
@@ -123,7 +123,7 @@ class HttpSecurityTests(unittest.TestCase):
 
     def test_headerless_local_cli_json_remains_compatible(self):
         status, body, _ = self.h.request(
-            "POST", "/api/ui/theme", json.dumps({"theme": "ops"}),
+            "POST", "/api/ui/theme", json.dumps({"theme": "leodock-glass"}),
             {"Content-Type": "application/json"})
         self.assertEqual(status, 200)
         self.assertTrue(body["ok"])
@@ -161,14 +161,14 @@ class AtomicAttachCreateTests(unittest.TestCase):
         )
 
     def test_create_and_attach_are_persisted_as_one_result(self):
-        with mock.patch.object(server, "app_alive_sign", return_value=False), \
-                mock.patch.object(server, "scan_listeners",
+        with mock.patch.object(leodock, "app_alive_sign", return_value=False), \
+                mock.patch.object(leodock, "scan_listeners",
                                   return_value={(4242, 3000)}), \
-                mock.patch.object(server, "ps_snapshot",
-                                  return_value={4242: {"uid": server.SELF_UID}}), \
-                mock.patch.object(server, "listener_app_owners",
+                mock.patch.object(leodock, "ps_snapshot",
+                                  return_value={4242: {"uid": leodock.SELF_UID}}), \
+                mock.patch.object(leodock, "listener_app_owners",
                                   return_value={}), \
-                mock.patch.object(server, "process_cwds",
+                mock.patch.object(leodock, "process_cwds",
                                   return_value={4242: "/actual"}):
             status, body, _ = self._create()
 
@@ -183,8 +183,8 @@ class AtomicAttachCreateTests(unittest.TestCase):
         self.assertTrue(apps[0]["attached"])
 
     def test_failed_attach_does_not_leave_a_stopped_card(self):
-        with mock.patch.object(server, "app_alive_sign", return_value=False), \
-                mock.patch.object(server, "scan_listeners", return_value=set()):
+        with mock.patch.object(leodock, "app_alive_sign", return_value=False), \
+                mock.patch.object(leodock, "scan_listeners", return_value=set()):
             status, body, _ = self._create()
 
         self.assertEqual(status, 409)
@@ -200,17 +200,17 @@ class DeliveryMetadataTests(unittest.TestCase):
         self.h.close()
 
     def test_state_exposes_version_schema_and_component_degradation(self):
-        with mock.patch.object(server, "build_services",
+        with mock.patch.object(leodock, "build_services",
                                side_effect=RuntimeError("CIM snapshot failed")), \
-                mock.patch.object(server, "build_watched", return_value=[]), \
-                mock.patch.object(server, "build_apps", return_value=[]), \
-                mock.patch.object(server, "list_themes", return_value=[]):
+                mock.patch.object(leodock, "build_watched", return_value=[]), \
+                mock.patch.object(leodock, "build_apps", return_value=[]), \
+                mock.patch.object(leodock, "list_themes", return_value=[]):
             status, body, _ = self.h.request("GET", "/api/state")
 
         self.assertEqual(status, 200)
-        self.assertEqual(body["version"], server.APP_VERSION)
+        self.assertEqual(body["version"], leodock.APP_VERSION)
         self.assertEqual(body["schemaVersion"],
-                         server.CURRENT_SCHEMA_VERSION)
+                         leodock.CURRENT_SCHEMA_VERSION)
         self.assertTrue(body["degraded"])
         self.assertEqual(body["degradedReasons"][0]["component"], "services")
         self.assertIn("configHealth", body)
@@ -224,19 +224,19 @@ class DeliveryMetadataTests(unittest.TestCase):
         os.mkdir(logs, 0o700)
         os.chmod(icons, 0o700)
         os.chmod(logs, 0o700)
-        with mock.patch.object(server, "DATA_DIR", self.h.tmp.name), \
-                mock.patch.object(server, "ICONS_DIR", icons), \
-                mock.patch.object(server, "LOGS_DIR", logs), \
-                mock.patch.object(server, "CONFIG_PATH", self.h.config_path), \
-                mock.patch.object(server, "build_services") as services:
+        with mock.patch.object(leodock, "DATA_DIR", self.h.tmp.name), \
+                mock.patch.object(leodock, "ICONS_DIR", icons), \
+                mock.patch.object(leodock, "LOGS_DIR", logs), \
+                mock.patch.object(leodock, "CONFIG_PATH", self.h.config_path), \
+                mock.patch.object(leodock, "build_services") as services:
             status, body, _ = self.h.request("GET", "/api/health")
 
         self.assertEqual(status, 200)
         self.assertTrue(body["ok"])
         self.assertEqual(body["status"], "ok")
-        self.assertEqual(body["version"], server.APP_VERSION)
+        self.assertEqual(body["version"], leodock.APP_VERSION)
         self.assertEqual(body["schemaVersion"],
-                         server.CURRENT_SCHEMA_VERSION)
+                         leodock.CURRENT_SCHEMA_VERSION)
         services.assert_not_called()
 
     def test_root_favicon_serves_the_unified_brand_asset(self):
@@ -278,12 +278,12 @@ class AppConfigurationTests(unittest.TestCase):
         )
 
         healthy = {"status": "ok", "blocking": False, "issues": []}
-        with mock.patch.object(server, "app_alive_sign", return_value=False), \
-                mock.patch.object(server, "inspect_app_health",
+        with mock.patch.object(leodock, "app_alive_sign", return_value=False), \
+                mock.patch.object(leodock, "inspect_app_health",
                                   return_value=healthy), \
-                mock.patch.object(server, "scan_listeners",
+                mock.patch.object(leodock, "scan_listeners",
                                   return_value={(999, 3000)}), \
-                mock.patch.object(server, "start_app") as start:
+                mock.patch.object(leodock, "start_app") as start:
             status, body, _ = self.h.request(
                 "POST", "/api/apps/%s/start" % app_a["id"], "{}", headers)
 
@@ -297,7 +297,7 @@ class OperationLockTests(unittest.TestCase):
         self.h = HttpHarness()
         command = subprocess.list2cmdline(
             [sys.executable, "-c", "import time; time.sleep(10)"])
-        app = {**server.Config.APP_DEFAULT,
+        app = {**leodock.Config.APP_DEFAULT,
                "id": "deadbeef", "name": "Service", "command": command,
                "kind": "service", "cwd": self.h.tmp.name}
         self.h.cfg.update(lambda data: data["apps"].append(app))
@@ -325,10 +325,10 @@ class OperationLockTests(unittest.TestCase):
                 "POST", "/api/apps/deadbeef/start", "{}",
                 {"Content-Type": "application/json"}))
 
-        with mock.patch.object(server, "app_alive_sign", return_value=False), \
-                mock.patch.object(server, "scan_listeners", return_value=set()), \
-                mock.patch.object(server, "start_app", side_effect=slow_start), \
-                mock.patch.object(server, "persist_started_app", return_value=True):
+        with mock.patch.object(leodock, "app_alive_sign", return_value=False), \
+                mock.patch.object(leodock, "scan_listeners", return_value=set()), \
+                mock.patch.object(leodock, "start_app", side_effect=slow_start), \
+                mock.patch.object(leodock, "persist_started_app", return_value=True):
             thread = threading.Thread(target=first_request)
             thread.start()
             self.assertTrue(entered.wait(1))
@@ -344,14 +344,14 @@ class OperationLockTests(unittest.TestCase):
         self.assertEqual(first_result[0][0], 200)
 
     def test_delete_keeps_config_when_verified_process_does_not_stop(self):
-        with mock.patch.object(server, "app_running", return_value=True), \
-                mock.patch.object(server, "stop_app_and_clear",
+        with mock.patch.object(leodock, "app_running", return_value=True), \
+                mock.patch.object(leodock, "stop_app_and_clear",
                                   return_value=(False, "应用仍在运行")):
             status, body, _ = self.h.request(
                 "DELETE", "/api/apps/deadbeef")
         self.assertEqual(status, 409)
         self.assertFalse(body["ok"])
-        self.assertIsNotNone(server.find_app(
+        self.assertIsNotNone(leodock.find_app(
             self.h.cfg.snapshot(), "deadbeef"))
 
     def test_start_preflight_blocks_invalid_config_without_spawning(self):
@@ -359,10 +359,10 @@ class OperationLockTests(unittest.TestCase):
             "status": "error", "blocking": True,
             "issues": [{"title": "脚本不可用", "detail": "找不到脚本"}],
         }
-        with mock.patch.object(server, "app_alive_sign", return_value=False), \
-                mock.patch.object(server, "inspect_app_health",
+        with mock.patch.object(leodock, "app_alive_sign", return_value=False), \
+                mock.patch.object(leodock, "inspect_app_health",
                                   return_value=health), \
-                mock.patch.object(server, "start_app") as start:
+                mock.patch.object(leodock, "start_app") as start:
             status, body, _ = self.h.request(
                 "POST", "/api/apps/deadbeef/start", "{}",
                 {"Content-Type": "application/json"})
@@ -376,10 +376,10 @@ class OperationLockTests(unittest.TestCase):
             "status": "error", "blocking": True,
             "issues": [{"title": "工作目录不可用", "detail": "目录已移走"}],
         }
-        with mock.patch.object(server, "app_alive_sign", return_value=True), \
-                mock.patch.object(server, "inspect_app_health",
+        with mock.patch.object(leodock, "app_alive_sign", return_value=True), \
+                mock.patch.object(leodock, "inspect_app_health",
                                   return_value=health), \
-                mock.patch.object(server, "stop_app_and_clear") as stop:
+                mock.patch.object(leodock, "stop_app_and_clear") as stop:
             status, body, _ = self.h.request(
                 "POST", "/api/apps/deadbeef/restart", "{}",
                 {"Content-Type": "application/json"})
@@ -392,16 +392,16 @@ class OperationLockTests(unittest.TestCase):
 class SingleInstanceTests(unittest.TestCase):
     def test_project_lock_rejects_second_instance_until_release(self):
         with tempfile.TemporaryDirectory() as td:
-            path = os.path.join(td, "northstar.lock")
-            first = server.acquire_instance_lock(path)
+            path = os.path.join(td, "leodock.lock")
+            first = leodock.acquire_instance_lock(path)
             self.assertIsNotNone(first)
             try:
-                self.assertIsNone(server.acquire_instance_lock(path))
+                self.assertIsNone(leodock.acquire_instance_lock(path))
             finally:
-                server.release_instance_lock(first)
-            third = server.acquire_instance_lock(path)
+                leodock.release_instance_lock(first)
+            third = leodock.acquire_instance_lock(path)
             self.assertIsNotNone(third)
-            server.release_instance_lock(third)
+            leodock.release_instance_lock(third)
 
 
 class StaticFileServingTests(unittest.TestCase):
@@ -424,11 +424,11 @@ class StaticFileServingTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("text/javascript", headers.get("Content-Type", ""))
 
-        status, body, headers = self.h.request("GET", "/assets/brand-mark.png")
+        status, body, headers = self.h.request("GET", "/assets/leodock-brand-mark.png")
         self.assertEqual(status, 200)
         self.assertEqual(headers.get("Content-Type"), "image/png")
 
-        status, body, headers = self.h.request("GET", "/themes/ops.css")
+        status, body, headers = self.h.request("GET", "/themes/leodock-glass.css")
         self.assertEqual(status, 200)
         self.assertIn("text/css", headers.get("Content-Type", ""))
 
@@ -440,22 +440,22 @@ class StaticFileServingTests(unittest.TestCase):
         for path in (
                 "/..%2f..%2f..%2fetc/passwd",
                 "/%2e%2e/%2e%2e/%2e%2e/etc/passwd",
-                "/..%2f..%2fserver.py",
+                "/..%2f..%2fleodock.py",
         ):
             status, _, _ = self.h.request("GET", path)
             self.assertEqual(status, 404)
 
     def test_dotdot_normalized_inside_static_never_reaches_parent(self):
-        status, _, _ = self.h.request("GET", "/js/../server.py")
+        status, _, _ = self.h.request("GET", "/js/../leodock.py")
         self.assertEqual(status, 404)
-        status, _, _ = self.h.request("GET", "/js/../../server.py")
+        status, _, _ = self.h.request("GET", "/js/../../leodock.py")
         self.assertEqual(status, 404)
 
     def test_icon_route_cannot_escape_icon_dir(self):
         status, _, _ = self.h.request("GET", "/icons/../../etc/passwd")
         self.assertEqual(status, 404)
 
-    @unittest.skipIf(server.IS_WINDOWS, "Windows symlinks require developer mode")
+    @unittest.skipIf(leodock.IS_WINDOWS, "Windows symlinks require developer mode")
     def test_symlink_inside_static_cannot_escape_to_outside(self):
         with tempfile.TemporaryDirectory() as td:
             outside = os.path.join(td, "secret.txt")
@@ -464,7 +464,7 @@ class StaticFileServingTests(unittest.TestCase):
             static = os.path.join(td, "static")
             os.mkdir(static)
             os.symlink(outside, os.path.join(static, "leak.txt"))
-            with mock.patch.object(server, "STATIC_DIR", static):
+            with mock.patch.object(leodock, "STATIC_DIR", static):
                 status, body, _ = self.h.request("GET", "/leak.txt")
             self.assertEqual(status, 404)
             self.assertNotIn(b"secret", body if isinstance(body, bytes) else b"")
@@ -489,9 +489,9 @@ class KillEndpointTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertFalse(body["ok"])
 
-    def test_kill_refuses_northstar_itself_and_missing_process(self):
+    def test_kill_refuses_leodock_itself_and_missing_process(self):
         status, body, _ = self.h.request(
-            "POST", "/api/kill", json.dumps({"pid": server.SELF_PID}),
+            "POST", "/api/kill", json.dumps({"pid": leodock.SELF_PID}),
             self.headers)
         self.assertEqual(status, 200)
         self.assertFalse(body["ok"])
@@ -613,13 +613,13 @@ class StateMutationEndpointTests(unittest.TestCase):
     def setUp(self):
         self.h = HttpHarness()
         for app in (
-                {**server.Config.APP_DEFAULT, "id": "aaaa0001",
+                {**leodock.Config.APP_DEFAULT, "id": "aaaa0001",
                  "name": "服务一", "command": "npm run dev", "kind": "service",
                  "cwd": "/one"},
-                {**server.Config.APP_DEFAULT, "id": "bbbb0002",
+                {**leodock.Config.APP_DEFAULT, "id": "bbbb0002",
                  "name": "服务二", "command": "npm run build", "kind": "service",
                  "cwd": "/two"},
-                {**server.Config.APP_DEFAULT, "id": "cccc0003",
+                {**leodock.Config.APP_DEFAULT, "id": "cccc0003",
                  "name": "服务三", "command": "npm run test", "kind": "service",
                  "cwd": "/three"},
         ):
@@ -649,9 +649,9 @@ class StateMutationEndpointTests(unittest.TestCase):
 
     def test_delete_removes_config_icon_and_log_files(self):
         with tempfile.TemporaryDirectory() as td, \
-                mock.patch.object(server, "ICONS_DIR", td), \
-                mock.patch.object(server, "LOGS_DIR", td), \
-                mock.patch.object(server, "app_running", return_value=False):
+                mock.patch.object(leodock, "ICONS_DIR", td), \
+                mock.patch.object(leodock, "LOGS_DIR", td), \
+                mock.patch.object(leodock, "app_running", return_value=False):
             icon = os.path.join(td, "aaaa0001.png")
             fav = os.path.join(td, "fav-aaaa0001.ico")
             log = os.path.join(td, "aaaa0001.log")
@@ -670,7 +670,7 @@ class StateMutationEndpointTests(unittest.TestCase):
 
     def test_logs_endpoint_returns_tail(self):
         with tempfile.TemporaryDirectory() as td, \
-                mock.patch.object(server, "LOGS_DIR", td):
+                mock.patch.object(leodock, "LOGS_DIR", td):
             with open(os.path.join(td, "aaaa0001.log"),
                       "w", encoding="utf-8") as f:
                 f.write("line1\nline2\nline3\n")
@@ -679,24 +679,24 @@ class StateMutationEndpointTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(body["text"], "line2\nline3")
 
-    def test_northstar_log_endpoint_returns_northstar_log_tail(self):
+    def test_leodock_log_endpoint_returns_leodock_log_tail(self):
         with tempfile.TemporaryDirectory() as td, \
-                mock.patch.object(server, "LOGS_DIR", td):
-            with open(os.path.join(td, "northstar.log"),
+                mock.patch.object(leodock, "LOGS_DIR", td):
+            with open(os.path.join(td, "leodock.log"),
                       "w", encoding="utf-8") as f:
                 f.write("boot ok\nwarn: x\nstarted\n")
             status, body, _ = self.h.request(
-                "GET", "/api/northstar/log?tail=2")
+                "GET", "/api/leodock/log?tail=2")
         self.assertEqual(status, 200)
         self.assertEqual(body["text"], "warn: x\nstarted")
 
     def test_log_tail_is_bounded_and_defaults_to_300(self):
         with tempfile.TemporaryDirectory() as td, \
-                mock.patch.object(server, "LOGS_DIR", td):
-            with open(os.path.join(td, "northstar.log"),
+                mock.patch.object(leodock, "LOGS_DIR", td):
+            with open(os.path.join(td, "leodock.log"),
                       "w", encoding="utf-8") as f:
                 f.write("\n".join("line%d" % i for i in range(600)))
-            status, body, _ = self.h.request("GET", "/api/northstar/log")
+            status, body, _ = self.h.request("GET", "/api/leodock/log")
         self.assertEqual(status, 200)
         self.assertEqual(len(body["text"].splitlines()), 300)
 
@@ -706,11 +706,11 @@ class AttachConflictTests(unittest.TestCase):
 
     def setUp(self):
         self.h = HttpHarness()
-        claimed = {**server.Config.APP_DEFAULT, "id": "aaaa0001",
+        claimed = {**leodock.Config.APP_DEFAULT, "id": "aaaa0001",
                    "name": "已有卡片", "command": "x", "kind": "service",
                    "cwd": "/other", "port": 3000,
                    "lastPid": 4242, "attached": True}
-        other = {**server.Config.APP_DEFAULT, "id": "bbbb0002",
+        other = {**leodock.Config.APP_DEFAULT, "id": "bbbb0002",
                  "name": "新卡片", "command": "y", "kind": "service",
                  "cwd": "/expected", "port": 3000}
         self.h.cfg.update(lambda d: d["apps"].extend([claimed, other]))
@@ -721,14 +721,14 @@ class AttachConflictTests(unittest.TestCase):
     def _mocks(self):
         stack = contextlib.ExitStack()
         stack.enter_context(mock.patch.object(
-            server, "app_alive_sign", return_value=False))
+            leodock, "app_alive_sign", return_value=False))
         stack.enter_context(mock.patch.object(
-            server, "scan_listeners", return_value={(4242, 3000)}))
+            leodock, "scan_listeners", return_value={(4242, 3000)}))
         stack.enter_context(mock.patch.object(
-            server, "ps_snapshot",
-            return_value={4242: {"uid": server.SELF_UID}}))
+            leodock, "ps_snapshot",
+            return_value={4242: {"uid": leodock.SELF_UID}}))
         stack.enter_context(mock.patch.object(
-            server, "process_cwds", return_value={4242: "/actual"}))
+            leodock, "process_cwds", return_value={4242: "/actual"}))
         return stack
 
     def test_attach_to_pid_claimed_by_other_card_is_rejected_in_lock(self):
@@ -739,7 +739,7 @@ class AttachConflictTests(unittest.TestCase):
                 {"Content-Type": "application/json"})
         self.assertEqual(status, 409)
         self.assertIn("其他卡片", body["error"])
-        card = server.find_app(self.h.cfg.snapshot(), "bbbb0002")
+        card = leodock.find_app(self.h.cfg.snapshot(), "bbbb0002")
         self.assertNotEqual(card["lastPid"], 4242)
 
     def test_create_with_pid_claimed_by_other_card_is_rejected_in_lock(self):
@@ -759,11 +759,11 @@ class StateCacheTests(unittest.TestCase):
     """TTL 缓存：TTL 内复用快照、失效后立即重建、配置写入自动失效。"""
 
     def setUp(self):
-        self._orig_cache = server._state_cache
-        server._state_cache = {"mono": 0.0, "state": None}
+        self._orig_cache = leodock._state_cache
+        leodock._state_cache = {"mono": 0.0, "state": None}
 
     def tearDown(self):
-        server._state_cache = self._orig_cache
+        leodock._state_cache = self._orig_cache
 
     def _snapshot_that_counts(self, calls):
         def fake_build(cfg, port, health=None):
@@ -775,12 +775,12 @@ class StateCacheTests(unittest.TestCase):
         calls = []
         cfg = mock.Mock()
         with mock.patch.object(
-                server, "build_state",
+                leodock, "build_state",
                 side_effect=self._snapshot_that_counts(calls)):
-            first = server.get_state_snapshot(cfg, 9600)
-            second = server.get_state_snapshot(cfg, 9600)
-            server.invalidate_state_cache()
-            third = server.get_state_snapshot(cfg, 9600)
+            first = leodock.get_state_snapshot(cfg, 9600)
+            second = leodock.get_state_snapshot(cfg, 9600)
+            leodock.invalidate_state_cache()
+            third = leodock.get_state_snapshot(cfg, 9600)
         self.assertEqual(calls, [9600, 9600])
         self.assertEqual(first, {"built": 1, "port": 9600})
         self.assertIs(second, first)
@@ -788,16 +788,16 @@ class StateCacheTests(unittest.TestCase):
 
     def test_config_update_invalidates_cache(self):
         with tempfile.TemporaryDirectory() as td:
-            cfg = server.Config(os.path.join(td, "config.json"))
+            cfg = leodock.Config(os.path.join(td, "config.json"))
             calls = []
             with mock.patch.object(
-                    server, "build_state",
+                    leodock, "build_state",
                     side_effect=self._snapshot_that_counts(calls)):
-                server.get_state_snapshot(cfg, 9600)
-                server.get_state_snapshot(cfg, 9600)
+                leodock.get_state_snapshot(cfg, 9600)
+                leodock.get_state_snapshot(cfg, 9600)
                 self.assertEqual(len(calls), 1)
                 cfg.update(lambda d: d.__setitem__("uiTheme", "custom"))
-                server.get_state_snapshot(cfg, 9600)
+                leodock.get_state_snapshot(cfg, 9600)
                 self.assertEqual(len(calls), 2)
 
 

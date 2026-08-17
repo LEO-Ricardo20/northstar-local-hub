@@ -663,7 +663,7 @@ let logController = null;
 let logIsConsole = false;
 
 function logEndpoint(appId) {
-  return logIsConsole ? '/api/northstar/log?tail=300'
+  return logIsConsole ? '/api/leodock/log?tail=300'
     : '/api/apps/' + appId + '/logs?tail=300';
 }
 
@@ -671,12 +671,12 @@ export function openLogs(app) {
   openLogDrawer(app.id, (app.name || '') + ' · 日志');
 }
 export function openConsoleLog() {
-  openLogDrawer('northstar', '北辰本地中枢 · 日志');
+  openLogDrawer('leodock', 'LeoDock · 日志');
 }
 function openLogDrawer(appId, title) {
   closeLogs();
   logAppId = appId;
-  logIsConsole = appId === 'northstar';
+  logIsConsole = appId === 'leodock';
   const requestSeq = ++logRequestSeq;
   drawerTitle.textContent = title;
   logPre.textContent = '加载中…';

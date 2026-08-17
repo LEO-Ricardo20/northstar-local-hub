@@ -415,6 +415,35 @@ class ConfigTests(unittest.TestCase):
 
 
 class RuntimeStorageTests(unittest.TestCase):
+    def test_open_file_permission_falls_back_without_fchmod(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = os.path.join(td, "private.log")
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT, 0o600)
+            real_chmod = os.chmod
+            try:
+                with mock.patch.object(
+                        server.os, "fchmod", None, create=True), \
+                        mock.patch.object(
+                            server.os, "chmod", wraps=real_chmod) as chmod:
+                    server._chmod_open_file(fd, path, 0o600)
+                chmod.assert_called_once_with(path, 0o600)
+            finally:
+                os.close(fd)
+
+    def test_open_file_permission_rejects_replaced_path(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = os.path.join(td, "private.log")
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT, 0o600)
+            try:
+                with mock.patch.object(
+                        server.os, "fchmod", None, create=True), \
+                        mock.patch.object(
+                            server.os.path, "samestat", return_value=False), \
+                        self.assertRaises(OSError):
+                    server._chmod_open_file(fd, path, 0o600)
+            finally:
+                os.close(fd)
+
     def test_runtime_override_requires_a_dedicated_absolute_directory(self):
         with mock.patch.dict(os.environ, {"TEST_CONSOLE_DIR": ""}):
             with self.assertRaises(RuntimeError):

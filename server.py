@@ -203,6 +203,19 @@ def _ensure_private_dir(path):
         LOG.warning("无法收紧目录权限: %s", path)
 
 
+def _chmod_open_file(fd, path, mode):
+    """收紧已打开文件权限，并兼容不提供 os.fchmod 的 Windows Python。"""
+    fchmod = getattr(os, "fchmod", None)
+    if callable(fchmod):
+        fchmod(fd, mode)
+        return
+    descriptor_stat = os.fstat(fd)
+    path_stat = os.stat(path, follow_symlinks=False)
+    if not os.path.samestat(descriptor_stat, path_stat):
+        raise OSError("已打开文件与权限目标不一致: %s" % path)
+    os.chmod(path, mode)
+
+
 def _copy_private_regular_file(source, target):
     """不跟随符号链接地复制普通文件，目标权限固定为 0600。"""
     try:
@@ -574,7 +587,7 @@ def acquire_instance_lock(path=INSTANCE_LOCK_PATH):
             return None
         raise
     try:
-        os.fchmod(lock_file.fileno(), 0o600)
+        _chmod_open_file(lock_file.fileno(), path, 0o600)
         lock_file.seek(0)
         lock_file.truncate()
         lock_file.write("%d\n" % SELF_PID)
@@ -1667,12 +1680,15 @@ def start_app(app):
     log_path = os.path.join(LOGS_DIR, "%s.log" % app["id"])
     rotate_log_file(log_path)
     cwd = app.get("cwd") or os.path.expanduser("~")
+    log_fd = -1
     try:
         log_fd = os.open(log_path, os.O_WRONLY | os.O_CREAT | os.O_APPEND,
                          0o600)
-        os.fchmod(log_fd, 0o600)
+        _chmod_open_file(log_fd, log_path, 0o600)
         logf = os.fdopen(log_fd, "ab", buffering=0)
     except OSError as e:
+        if log_fd >= 0:
+            os.close(log_fd)
         return False, "无法打开日志文件: %s" % e, None, None, None
     token = secrets.token_urlsafe(24)
     env = build_launch_env(token)
@@ -4175,7 +4191,7 @@ def redirect_northstar_output():
     path = os.path.join(LOGS_DIR, "northstar.log")
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
     try:
-        os.fchmod(fd, 0o600)
+        _chmod_open_file(fd, path, 0o600)
         for stream in (sys.stdout, sys.stderr):
             try:
                 stream.flush()

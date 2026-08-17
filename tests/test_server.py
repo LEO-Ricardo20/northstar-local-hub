@@ -1116,7 +1116,7 @@ class ThemeTests(unittest.TestCase):
         listed = server.list_themes()
         self.assertEqual([theme["id"] for theme in listed], ["ops"])
         themes = {t["id"]: t for t in listed}
-        self.assertEqual(themes["ops"]["name"], "Ops 指挥台")
+        self.assertEqual(themes["ops"]["name"], "北辰光幕")
         self.assertTrue(themes["ops"]["colors"])
 
     def test_config_defaults_ui_theme(self):

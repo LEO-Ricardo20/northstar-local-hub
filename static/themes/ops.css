@@ -1,7 +1,7 @@
 /* ============================================================
-   北辰本地中枢主题 — OPS / 指挥台（唯一内置主题）
-   深空蓝黑 · 左侧导航轨 · KPI 图标卡 · 迷你负载条 · 实时动态侧栏
-   柔和圆角 + 细发丝边 + 蓝调强调色，深浅双模式
+   北辰本地中枢主题 — NORTHSTAR GLASS / 北辰光幕
+   深黑蓝空间 · 雾白玻璃 · 北辰蓝高光 · 流体折射光幕
+   分级透明材质 + 局部辉光 + 高密度运行信息，深浅双模式
    由 #themeCss 整包加载
    ============================================================ */
 
@@ -13,75 +13,97 @@
   font-display: swap;
 }
 
-/* ---------- 令牌 (Light · 雾灰) ---------- */
+/* ---------- 令牌 (Light · 雾白玻璃) ---------- */
 :root {
   color-scheme: light;
 
-  --font-sans: "Segoe UI", 'SF Pro Text',
-    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-display: 'Segoe UI Variable Display', 'Segoe UI', 'PingFang SC',
+    'Microsoft YaHei', sans-serif;
+  --font-sans: 'Segoe UI Variable Text', 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
-  --room: #eef2f6;        /* 雾灰底 */
-  --card: #ffffff;
-  --card-2: #f4f7fa;      /* 下沉条带 */
+  --room: #e8eef7;
+  --card: #f8fbff;
+  --card-2: #dfe8f3;
   --paper: var(--card);
   --bg: var(--room);
 
-  --ink: #17202b;
-  --ink-2: #45525f;
-  --ink-3: #5f6d7a;
-  --ink-4: #5d6f83;
+  --ink: #101827;
+  --ink-2: #415069;
+  --ink-3: #5b6980;
+  --ink-4: #59677b;
 
-  --line: rgba(23, 32, 43, 0.1);
-  --line-2: rgba(23, 32, 43, 0.2);
+  --line: rgba(26, 45, 76, 0.11);
+  --line-2: rgba(26, 45, 76, 0.2);
 
-  --accent: #2f6fde;
+  --accent: #345fd7;
   --accent-ink: var(--accent);
   --on-accent: #ffffff;
-  --green: #127a4f;
-  --red: #d1453d;
-  --amber: #a9740a;
-  --purple: #7c5cff;
+  --green: #16764f;
+  --red: #c23d52;
+  --amber: #a36a16;
+  --purple: #6d57c7;
 
-  --shadow: 0 1px 2px rgba(23, 32, 43, 0.07);
-  --shadow-lg: 0 12px 32px rgba(23, 32, 43, 0.14);
+  --glass: rgba(248, 251, 255, 0.56);
+  --glass-strong: rgba(248, 251, 255, 0.78);
+  --glass-soft: rgba(255, 255, 255, 0.34);
+  --glass-muted: rgba(213, 224, 238, 0.48);
+  --glass-border: rgba(255, 255, 255, 0.72);
+  --glass-highlight: rgba(255, 255, 255, 0.92);
+  --ambient-primary: rgba(52, 95, 215, 0.2);
+  --ambient-secondary: rgba(93, 141, 201, 0.18);
+  --ambient-white: rgba(255, 255, 255, 0.58);
+
+  --shadow: 0 10px 30px rgba(33, 54, 88, 0.1);
+  --shadow-lg: 0 28px 72px rgba(25, 43, 73, 0.18);
   --raised: var(--shadow);
   --plate-shadow: var(--shadow-lg);
-  --focus-ring: 0 0 0 2.5px rgba(47, 111, 222, 0.32);
+  --focus-ring: 0 0 0 3px rgba(52, 95, 215, 0.24);
 
-  --content-max: 1320px;
+  --content-max: 1640px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* ---------- 令牌 (Dark · 深空) ---------- */
+/* ---------- 令牌 (Dark · 深空光幕) ---------- */
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --room: #0a0e14;
-  --card: #131a24;
-  --card-2: #0d141d;
+  --room: #080b11;
+  --card: #111722;
+  --card-2: #182130;
   --paper: var(--card);
   --bg: var(--room);
 
-  --ink: #e6edf3;
-  --ink-2: #9fabb9;
-  --ink-3: #7d8a99;
-  --ink-4: #78869a;
+  --ink: #f5f8ff;
+  --ink-2: #b3bdcc;
+  --ink-3: #8c98aa;
+  --ink-4: #7c8a9e;
 
-  --line: rgba(148, 163, 184, 0.12);
-  --line-2: rgba(148, 163, 184, 0.24);
+  --line: rgba(255, 255, 255, 0.075);
+  --line-2: rgba(255, 255, 255, 0.14);
 
-  --accent: #5b9dff;
+  --accent: #6d92ff;
   --accent-ink: var(--accent);
-  --on-accent: #0b1220;
-  --green: #3ecf8e;
-  --red: #f26d6d;
-  --amber: #f5b544;
-  --purple: #a78bfa;
+  --on-accent: #07101f;
+  --green: #47d18c;
+  --red: #ff6c7d;
+  --amber: #f0bd60;
+  --purple: #a38bff;
 
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.55);
-  --focus-ring: 0 0 0 2.5px rgba(91, 157, 255, 0.4);
+  --glass: rgba(15, 22, 34, 0.55);
+  --glass-strong: rgba(15, 22, 34, 0.76);
+  --glass-soft: rgba(255, 255, 255, 0.045);
+  --glass-muted: rgba(27, 38, 55, 0.62);
+  --glass-border: rgba(255, 255, 255, 0.11);
+  --glass-highlight: rgba(255, 255, 255, 0.2);
+  --ambient-primary: rgba(60, 105, 220, 0.28);
+  --ambient-secondary: rgba(86, 139, 196, 0.2);
+  --ambient-white: rgba(225, 238, 255, 0.18);
+
+  --shadow: 0 14px 38px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 30px 90px rgba(0, 0, 0, 0.52);
+  --focus-ring: 0 0 0 3px rgba(109, 146, 255, 0.28);
 }
 
 /* ---------- 基础 ---------- */

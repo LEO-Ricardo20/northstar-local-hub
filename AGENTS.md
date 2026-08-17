@@ -6,7 +6,7 @@
 
 - `server.py`：HTTP API、配置、Windows 进程/端口扫描、任务生命周期和安全校验。
 - `static/`：无构建前端；`app.js` 为入口，`static/js/` 为功能模块。
-- `static/themes/ops.css`：唯一内置主题；界面需要兼容浅色、深色和窄屏。
+- `static/themes/ops.css`：唯一内置的“北辰光幕”主题；界面需要兼容浅色、深色和窄屏。
 - `tests/`：后端、Windows、前端契约、加固和发行测试。
 - `tools/check_project.py`：权威项目检查。
 - `tools/build_release.py`：可复现发行 ZIP 和发布边界审计。

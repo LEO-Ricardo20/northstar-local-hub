@@ -86,10 +86,10 @@ function applyView() {
   viewServices.setAttribute('aria-hidden', String(v !== 'services'));
   setText(viewTitle, v === 'launchpad' ? '启动台' : '服务监控');
   document.documentElement.dataset.view = v;
-  setText(viewOverline, v === 'launchpad' ? 'Launchpad' : 'Services');
+  setText(viewOverline, v === 'launchpad' ? '01 / Local Control' : '02 / Runtime Signal');
   setText(viewSub, v === 'launchpad'
-    ? '一键启动与管理你的本地服务和批处理任务'
-    : '实时掌握本机监听端口与进程负载');
+    ? '集中启动项目、执行任务，并持续观察每一个本地运行状态'
+    : '沿端口、进程与资源信号，快速定位这台电脑正在运行什么');
 }
 navBtns.forEach(b => b.addEventListener('click', () => switchView(b.dataset.view)));
 railBtns.forEach(b => b.addEventListener('click', () => switchView(b.dataset.view)));

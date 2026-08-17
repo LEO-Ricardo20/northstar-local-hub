@@ -1,6 +1,6 @@
 # 北辰本地中枢
 
-[![Windows CI](https://github.com/laogou717/northstar-local-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/laogou717/northstar-local-hub/actions/workflows/ci.yml)
+[![Windows CI](https://github.com/LEO-Ricardo20/northstar-local-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/LEO-Ricardo20/northstar-local-hub/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Windows 11](https://img.shields.io/badge/Windows-11-0078D4.svg)](WINDOWS.md)
 
@@ -16,7 +16,7 @@ Northstar Local Hub 是一个面向 Windows 11 的本地服务与批处理任务
 - 从项目目录识别 Node.js、Python、Go、Rust、静态站点等常见启动方式。
 - 原生选择 `.py`、`.ps1`、`.cmd`、`.bat` 和 `.js` 脚本。
 - 使用随机运行令牌、根 PID、父子进程关系与当前用户 SID 识别受控进程树。
-- 界面支持浅色、深色、系统主题、命令面板和键盘排序。
+- “北辰光幕”界面采用深黑蓝空间、雾白玻璃、北辰蓝折射光与分级透明材质，支持浅色、深色、系统主题、命令面板和键盘排序。
 - 后端只使用 Python 标准库；前端使用原生 HTML、CSS 和 ES Modules，不依赖 CDN。
 
 ## 界面预览
@@ -35,7 +35,7 @@ Northstar Local Hub 是一个面向 Windows 11 的本地服务与批处理任务
 ## 快速开始
 
 ```powershell
-git clone https://github.com/laogou717/northstar-local-hub.git
+git clone https://github.com/LEO-Ricardo20/northstar-local-hub.git
 cd northstar-local-hub
 py -3 --version
 ```
@@ -156,7 +156,7 @@ py -3 tools/gen_brand_assets.py
 
 ```text
 server.py                  Python 标准库后端
-static/                    原生前端、主题、字体与图标
+static/                    原生前端、北辰光幕主题、字体与图标
 tests/                     后端、前端契约和发行测试
 tools/check_project.py     完整项目检查
 tools/build_release.py     可复现发行包生成与审计
@@ -172,6 +172,6 @@ start-windows-debug.cmd    Windows 调试启动入口
 - 第三方素材：[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 - 素材来源：[ASSET_PROVENANCE.md](ASSET_PROVENANCE.md)
 
-## 许可与上游来源
+## 版权与许可
 
-项目基于 `laogou717/local-ops` 的 MIT 许可代码进行 Windows 11 专用改造，并保留上游版权声明。修改后的项目同样采用 [MIT License](LICENSE)。字体、Lucide 图标和品牌素材适用各自说明，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 与 [ASSET_PROVENANCE.md](ASSET_PROVENANCE.md)。
+本仓库由 [LEO-Ricardo20](https://github.com/LEO-Ricardo20) 维护。项目代码依据 [MIT License](LICENSE) 开放使用；既有代码的原版权声明与本项目修改部分的版权声明均保留在许可证中。字体、Lucide 图标和品牌素材适用各自许可与来源说明，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 与 [ASSET_PROVENANCE.md](ASSET_PROVENANCE.md)。

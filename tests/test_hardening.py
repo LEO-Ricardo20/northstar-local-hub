@@ -70,7 +70,9 @@ class HttpSecurityTests(unittest.TestCase):
         return headers
 
     def _session_cookie(self):
-        status, _, headers = self.h.request("GET", "/api/state")
+        # Cookie 属性与状态快照无关；使用轻量健康接口避免让安全测试
+        # 受 Windows Runner 上端口和进程扫描耗时影响。
+        status, _, headers = self.h.request("GET", "/api/health")
         self.assertEqual(status, 200)
         value = headers.get("Set-Cookie", "")
         self.assertIn("HttpOnly", value)

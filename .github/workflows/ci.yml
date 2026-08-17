@@ -15,6 +15,7 @@ jobs:
     timeout-minutes: 20
     env:
       PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUTF8: "1"
       SOURCE_DATE_EPOCH: "1704067200"
 
     steps:

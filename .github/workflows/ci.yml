@@ -36,7 +36,16 @@ jobs:
 
       - name: Run project checks
         shell: pwsh
-        run: python tools/check_project.py
+        run: |
+          $output = python tools/check_project.py 2>&1
+          $exitCode = $LASTEXITCODE
+          $output | ForEach-Object { Write-Host $_ }
+          if ($exitCode -ne 0) {
+            $tail = ($output | Select-Object -Last 100) -join "`n"
+            $annotation = $tail.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Host "::error title=Project checks failed::$annotation"
+            exit $exitCode
+          }
 
       - name: Build and verify release
         shell: pwsh

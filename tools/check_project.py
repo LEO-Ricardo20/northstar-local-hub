@@ -95,6 +95,7 @@ def check_required_files() -> str:
     required = (
         "VERSION",
         "README.md",
+        "README_EN.md",
         "WINDOWS.md",
         "CHANGELOG.md",
         "LICENSE",

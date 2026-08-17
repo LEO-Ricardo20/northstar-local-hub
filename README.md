@@ -1,5 +1,7 @@
 # 北辰本地中枢
 
+**简体中文** | [English](README_EN.md)
+
 [![Windows CI](https://github.com/LEO-Ricardo20/northstar-local-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/LEO-Ricardo20/northstar-local-hub/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Windows 11](https://img.shields.io/badge/Windows-11-0078D4.svg)](WINDOWS.md)

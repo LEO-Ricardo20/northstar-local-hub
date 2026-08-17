@@ -29,6 +29,7 @@ REQUIRED_LICENSES = (
 )
 REQUIRED_PROJECT_DOCS = (
     "README.md",
+    "README_EN.md",
     "WINDOWS.md",
     "CHANGELOG.md",
     "LICENSE",
